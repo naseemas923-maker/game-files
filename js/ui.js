@@ -20,6 +20,14 @@
       this.bindTouch();
       this.bindSettingsStatic();
       this.setupTouchButtons();
+      const hudBp = $("hud-build");
+      if (hudBp) {
+        hudBp.addEventListener("click", () => {
+          if (!SL.Game.run) return;
+          SL.Audio.play("click");
+          if (SL.Game.buildInfo) this.showBuildBreakdown(SL.Game.buildInfo);
+        });
+      }
     },
 
     /* ---------------- screens ---------------- */
@@ -51,6 +59,20 @@
       $("main-coins").textContent = U.formatNum(d.coins);
       $("main-gems").textContent = U.formatNum(d.gems);
       $("main-xp").textContent = U.formatNum(d.xp);
+      const br = $("build-records");
+      if (br) {
+        const pb = d.personalBest;
+        const has = (pb.buildPower || 0) > 0;
+        br.classList.toggle("hidden", !has);
+        if (has) {
+          const tier = SL.BuildPower && SL.BuildPower.tierInfo ? SL.BuildPower.tierInfo(pb.buildPower).rank : "";
+          br.innerHTML = '<span class="res-bp">\u2694 Best Build: <b>' + U.formatNum(pb.buildPower) + (tier ? " (" + tier + ")" : "") + '</b></span>' +
+            '<span class="res-syn">Synergy <b>' + (pb.synergy || 0) + '/100</b></span>' +
+            '<span class="res-spec">Spec <b>' + (pb.specialization || 0) + '%</b></span>' +
+            '<span class="res-evo">Evolutions <b>' + (pb.evolutions || 0) + '</b></span>' +
+            '<span class="res-curse">Curses <b>' + (pb.curses || 0) + '</b></span>';
+        }
+      }
     },
 
     /* ---------------- main menu ---------------- */
@@ -268,8 +290,9 @@
     /* ---------------- leaderboard ---------------- */
     showLeaderboard(active) {
       this.renderSubscreen("Leaderboards", () => {
-        const tabs = ["global", "weekly", "friends", "class", "personal"].map((t) =>
-          `<button class="lb-tab ${active === t ? "active" : ""}" data-lb="${t}">${t.toUpperCase()}</button>`).join("");
+        const boards = SL.Leaderboard.BOARDS || ["global", "weekly", "friends", "class", "personal"];
+        const tabs = boards.map((t) =>
+          `<button class="lb-tab ${active === t ? "active" : ""}" data-lb="${t}">${this._lbLabel(t)}</button>`).join("");
         return `<div class="lb-tabs">${tabs}</div>
           <div id="lb-content" style="display:flex;flex-direction:column;gap:10px">
             <div class="lb-note">Loading...</div>
@@ -282,6 +305,15 @@
       });
     },
 
+    _lbLabel(t) {
+      const map = {
+        global: "SCORE", weekly: "WEEKLY", friends: "FRIENDS",
+        class: "CLASS", personal: "PERSONAL", build: "BUILD",
+        synergy: "SYNERGY", buildboss: "BUILD+BOSS", buildcurse: "CURSED",
+      };
+      return map[t] || t.toUpperCase();
+    },
+
     async loadBoard(board) {
       const content = $("lb-content");
       const save = SL.Save.get();
@@ -291,7 +323,10 @@
         cls = save.selectedWarrior;
         entries = await SL.Leaderboard.get("class", { cls });
       }
-      const me = save.personalBest.score;
+      const pb = save.personalBest;
+      const statOf = SL.Leaderboard.statOf || ((b, e) => e.score || 0);
+      const labelFor = SL.Leaderboard.labelFor || (() => "SCORE");
+      const me = statOf(board, { score: pb.score, buildPower: pb.buildPower, synergy: pb.synergy });
       let html = "";
       if (board === "friends") {
         html = '<div class="lb-note">No friends connected yet. Connect an online backend to see your friends here.</div>';
@@ -301,10 +336,10 @@
             <span class="lb-rank ${i < 3 ? "top" + (i + 1) : ""}">#${i + 1}</span>
             <span class="lb-name">${e.name || "Hero"}</span>
             <span class="lb-class">${(SL.Progression.WARRIOR_BY_ID[e.cls] || {}).name || "—"}</span>
-            <span class="lb-score">${U.formatNum(e.score)}</span>
+            <span class="lb-score">${board === "buildcurse" && (e.curses || 0) < 1 ? "—" : U.formatNum(statOf(board, e))}</span>
           </div>`).join("");
         html = `<div class="lb-list">${rows || '<div class="lb-note">No scores yet.</div>'}</div>`;
-        html += `<div class="lb-note">Your best: <b style="color:#ffc34d">${U.formatNum(me)}</b></div>`;
+        html += `<div class="lb-note">Your best ${labelFor(board).toLowerCase()}: <b style="color:#ffc34d">${board === "buildcurse" && (pb.curses || 0) < 1 ? "—" : U.formatNum(me)}</b></div>`;
       }
       html += `<div class="lb-note">${board === "weekly" ? "Weekly scores reset every Monday." : ""}${board !== "friends" ? " Demo scores stored locally in this browser \u2014 no online backend connected." : ""}</div>`;
       if (content) content.innerHTML = html;
@@ -535,6 +570,109 @@
       }
     },
 
+    /* ---------------- build power ---------------- */
+    updateBuildHUD(info) {
+      const bp = $("hud-build");
+      if (!bp) return;
+      const v = $("hud-bp");
+      if (v) v.textContent = U.formatNum(info.total);
+      const rankEl = $("hud-bp-rank");
+      if (rankEl) {
+        rankEl.textContent = info.rank;
+        rankEl.className = "bp-rank " + info.rank.toLowerCase();
+      }
+      const bar = $("hud-bp-bar");
+      if (bar) bar.style.width = Math.round(info.progress * 100) + "%";
+      const nextEl = $("hud-bp-next");
+      if (nextEl) {
+        nextEl.textContent = info.nextAt ? U.formatNum(info.total) + " / " + U.formatNum(info.nextAt) : U.formatNum(info.total) + " \u2014 MAX";
+      }
+    },
+
+    buildPowerAnim(prev, next, reason, msg) {
+      const root = $("bp-anim-root");
+      if (!root) return;
+      const el = document.createElement("div");
+      el.className = "bp-anim " + this._bpAnimClass(reason);
+      const delta = next - prev;
+      const sign = delta >= 0 ? "+" : "";
+      el.innerHTML = '<div class="bp-a-head">BUILD POWER</div>' +
+        '<div class="bp-a-delta">' + sign + U.formatNum(delta) + '</div>' +
+        '<div class="bp-a-why">' + (msg || this._bpAnimMsg(reason)) + '</div>';
+      root.appendChild(el);
+      setTimeout(() => {
+        el.style.transition = "opacity .4s, transform .4s";
+        el.style.opacity = "0";
+        el.style.transform = "translateY(-18px) scale(.96)";
+      }, 1600);
+      setTimeout(() => el.remove(), 2100);
+    },
+
+    _bpAnimClass(reason) {
+      switch (reason) {
+        case "synergy": return "a-synergy";
+        case "evolution": return "a-evolution";
+        case "curse": return "a-curse";
+        case "mythic": return "a-mythic";
+        case "rare": case "epic": case "legendary": return "a-big";
+        default: return "a-small";
+      }
+    },
+
+    _bpAnimMsg(reason) {
+      switch (reason) {
+        case "synergy": return "A powerful synergy awakened.";
+        case "evolution": return "Your build evolved!";
+        case "curse": return "A curse empowers your build.";
+        case "mythic": return "MYTHIC BUILD";
+        case "legendary": return "A legendary upgrade.";
+        case "epic": return "An epic upgrade.";
+        case "rare": return "A rare upgrade.";
+        default: return "Your build grows stronger.";
+      }
+    },
+
+    showBuildBreakdown(info) {
+      const root = $("modal-root");
+      if (!root) return;
+      const box = document.createElement("div");
+      box.className = "modal";
+      const rows = [
+        ["Base Upgrades", info.basePower],
+        ["Upgrade Levels", info.levelPower],
+        ["Synergies", info.synergyPower],
+        ["Evolutions", info.evolutionPower],
+        ["Specialization", info.specPower],
+        ["Diversity", info.diversityScore],
+        ["Completion", info.completionPower],
+        ["Curses", info.cursePower],
+        ["Efficiency \u00d7" + info.mult.toFixed(2), info.efficiencyBonus],
+      ];
+      const synList = info.synDetails.length ? info.synDetails.map((s) =>
+        '<div class="bp-syn"><span>' + (s.kind === "recipe" ? "\u2728 " : "\u25c8 ") + s.name + '</span><span class="bp-syn-v">+' + s.power + ' \u00b7 ' + s.strength + '/100</span></div>'
+      ).join("") : '<div class="bp-syn muted">No synergies yet \u2014 match upgrades of the same element or ability set.</div>';
+      const evoList = info.evoDetails.length ? info.evoDetails.map((e) =>
+        '<div class="bp-syn"><span>\u{1F525} ' + e.name + '</span><span class="bp-syn-v">+' + (e.power + e.fit) + ' (fit +' + e.fit + ')</span></div>'
+      ).join("") : "";
+      box.innerHTML = '<div class="modal-box bp-modal">' +
+        '<div class="bp-m-head"><span>BUILD POWER</span><b>' + U.formatNum(info.total) + '</b></div>' +
+        '<div class="bp-rankline">' + info.rank + (info.nextRank ? " \u2192 " + info.nextRank : " (MAX)") + '</div>' +
+        '<div class="bar"><div class="bar-fill bp" style="width:' + Math.round(info.progress * 100) + '%"></div></div>' +
+        rows.map((r) => '<div class="bp-row"><span>' + r[0] + '</span><b>+' + U.formatNum(r[1]) + '</b></div>').join("") +
+        '<div class="bp-total"><span>Total</span><b>' + U.formatNum(info.total) + '</b></div>' +
+        '<div class="bp-ident"><span class="bp-arch-ico">' + info.archIcon + '</span><div>' +
+        '<div class="bp-ident-name">' + info.identity + '</div>' +
+        '<div class="bp-meta">Synergy Strength: <b>' + info.synergyStrength + '/100</b> \u00b7 Build Efficiency: <b>' + info.efficiency + '%</b> \u00b7 Specialization: <b>' + info.specShare + '%</b></div>' +
+        '</div></div>' +
+        '<div class="bp-section">Synergies</div>' + synList +
+        (evoList ? '<div class="bp-section">Evolutions</div>' + evoList : "") +
+        '<button class="big-btn primary" id="bp-close">CLOSE</button>' +
+        '</div>';
+      root.appendChild(box);
+      const close = box.querySelector("#bp-close");
+      if (close) close.addEventListener("click", () => box.remove());
+    },
+
     /* ---------------- level-up cards ---------------- */
     showLevelUp(picks) {
       $("levelup-overlay").classList.remove("hidden");
@@ -561,13 +699,53 @@
           const idx = parseInt(card.dataset.pick, 10);
           const result = SL.Upgrades.applyUpgrade(SL.Game.run, picks[idx].id);
           SL.Audio.play("upgrade");
+          let reason = result.def.rarity;
+          let msg = null;
           for (const syn of result.synergies) {
             this.toast("SYNERGY DISCOVERED: " + syn.name, "synergy");
+            reason = "synergy";
+            msg = (msg ? msg + " " : "") + syn.name + " is now active.";
           }
+          if (result.def.rarity === "cursed") {
+            reason = "curse";
+            msg = result.def.name + " empowers your build at a cost.";
+          }
+          if (SL.Game.refreshBuild) SL.Game.refreshBuild(reason, msg);
           $("levelup-overlay").classList.add("hidden");
           SL.Game.afterLevelUp();
         });
       });
+
+      const evos = SL.BuildPower && SL.BuildPower.pendingEvolutions
+        ? SL.BuildPower.pendingEvolutions(SL.Game.run)
+        : [];
+      if (evos.length) {
+        const evoWrap = document.createElement("div");
+        evoWrap.className = "evo-cards";
+        evoWrap.innerHTML = evos.map((e, i) => {
+          const next = e.stack + 1;
+          const pow = e.base * Math.pow(1.6, next);
+          return '<div class="evo-card" data-evo="' + e.id + '" style="animation-delay:' + (i * 0.1 + 0.2) + 's">' +
+            '<div class="evo-ico">\u{1F525}</div>' +
+            '<div class="evo-name">' + e.name + '</div>' +
+            '<div class="evo-desc">' + e.desc + '</div>' +
+            '<div class="evo-stack">' + (e.stack > 0 ? "Stack " + e.stack : "NEW") + ' \u2192 Level ' + next + '</div>' +
+            '<div class="evo-pow">+~' + Math.round(pow) + ' Build Power</div>' +
+            '</div>';
+        }).join("");
+        container.appendChild(evoWrap);
+        evoWrap.querySelectorAll("[data-evo]").forEach((card) => {
+          card.addEventListener("click", () => {
+            const evo = evos[parseInt(card.dataset.evo, 10)];
+            const r = SL.BuildPower.applyEvolution(SL.Game.run, evo.id);
+            SL.Audio.play("levelup");
+            this.toast("EVOLUTION: " + r.evo.name + " unlocked", "synergy");
+            if (SL.Game.refreshBuild) SL.Game.refreshBuild("evolution", r.evo.name + " unlocked \u2014 a major build evolution.");
+            $("levelup-overlay").classList.add("hidden");
+            SL.Game.afterLevelUp();
+          });
+        });
+      }
     },
 
     hideLevelUp() {
@@ -580,6 +758,8 @@
       const pb = d.personalBest;
       const rank = g.finalRank || { rank: "—", total: "—" };
       const isNewBest = g.score >= pb.score && g.score > 0;
+      const bInfo = g.buildInfo || null;
+      const isNewBuildBest = bInfo && bInfo.total > 0 && bInfo.total >= (g.prevBuildBest || 0);
       $("death-stats").innerHTML = `
         ${this.dstat("Distance", Math.floor(g.distance) + "m")}
         ${this.dstat("Enemies Defeated", U.formatNum(g.kills))}
@@ -589,7 +769,9 @@
         ${this.dstat("Final Score", U.formatNum(g.score), "gold")}
         ${this.dstat("Leaderboard", "#" + rank.rank + " of " + rank.total)}
         ${this.dstat("Level Reached", g.player ? g.player.level : 1)}
-        ${isNewBest ? '<div class="dstat wide"><div class="k">NEW PERSONAL BEST!</div><div class="v gold">' + U.formatNum(g.score) + "</div></div>" : ""}`;
+        ${bInfo ? this.dstat("Build Power", U.formatNum(bInfo.total) + " (" + bInfo.rank + ")", "gold") : ""}
+        ${isNewBest ? '<div class="dstat wide"><div class="k">NEW PERSONAL BEST!</div><div class="v gold">' + U.formatNum(g.score) + "</div></div>" : ""}
+        ${isNewBuildBest ? '<div class="dstat wide"><div class="k">NEW BEST BUILD!</div><div class="v gold">' + U.formatNum(bInfo.total) + "</div></div>" : ""}`;
       $("death-screen").classList.remove("hidden");
       const rw = g.rewards || { coins: 0, gems: 0, xp: 0 };
       $("death-rewards").innerHTML = `<span class="res-coin">&#9679; <b>${U.formatNum(rw.coins)}</b> earned</span>

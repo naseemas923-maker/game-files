@@ -18,6 +18,11 @@
     { id: "survive300", name: "Survivor", desc: "Survive %1 seconds", type: "time", target: 300, reward: { coins: 1000, gems: 20 } },
     { id: "gruntClass", name: "Class Master", desc: "Finish a run with %1", type: "class", target: "a specific class", reward: { coins: 1200, gems: 25 } },
     { id: "noUpgrade", name: "Purist", desc: "Reach %1 meters without taking an upgrade", type: "noUpgrade", target: 1000, reward: { coins: 1100, gems: 22 } },
+    { id: "build1k", name: "Power Awakening", desc: "Reach %1 Build Power in one run", type: "build", target: 1000, reward: { coins: 900, gems: 18 } },
+    { id: "build15noc", name: "Clean Power", desc: "Reach %1 Build Power with no curses", type: "build", target: 1500, reward: { coins: 1200, gems: 25 } },
+    { id: "build2k2c", name: "Focused Build", desc: "Reach %1 Build Power using at most 2 categories", type: "build", target: 2000, reward: { coins: 1600, gems: 32 } },
+    { id: "build25k3s", name: "Synergy Weaver", desc: "Reach %1 Build Power with 3+ synergies", type: "build", target: 2500, reward: { coins: 2000, gems: 40 } },
+    { id: "build3kcurse", name: "Risk Master", desc: "Reach %1 Build Power with a cursed build", type: "build", target: 3000, reward: { coins: 2500, gems: 50 } },
   ];
 
   const WEEKLY_MODIFIERS = [

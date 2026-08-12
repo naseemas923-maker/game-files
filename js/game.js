@@ -200,6 +200,19 @@
       SL.Audio.startMusic();
       this.toastZone();
       SL.UI.toast("HOLD \u2192 TO ADVANCE", "zone");
+
+      /* build power system */
+      this.buildPeaks = { bp: 0, noCurse: 0, twoCat: 0, threeSyn: 0, curse: 0 };
+      this.bpFired = {};
+      this.buildInfo = null;
+      this.buildPower = 0;
+      this.prevBuildBest = (SL.Save.get().personalBest.buildPower) || 0;
+      SL.BuildPower.recompute(this, "start");
+    }
+
+    /* recompute build power after upgrades / evolutions / equipment */
+    refreshBuild(reason, msg) {
+      return SL.BuildPower.recompute(this, reason, msg);
     }
 
     pause() {
@@ -252,7 +265,11 @@
           distance: Math.floor(this.distance), kills: this.kills,
           bosses: this.bossKills, maxCombo: this.maxCombo,
           time: this.timeSurvived,
+          buildPower: this.buildPower || 0,
+          synergy: this.buildInfo ? this.buildInfo.synergyStrength : 0,
+          curses: this.buildInfo ? this.buildInfo.curseCount : 0,
         };
+        if (this.buildInfo) SL.BuildPower.recordEndRun(this);
         SL.Leaderboard.submit(entry).then(async () => {
           const pb = save.personalBest;
           const res = await SL.Leaderboard.rankOf("global", Math.floor(this.score), null);
@@ -287,6 +304,12 @@
       update("survive300", Math.floor(this.timeSurvived));
       update("gruntClass", 1);
       update("noUpgrade", this.upgradesTaken === 0 ? this.distance : 0);
+      const bp = this.buildPeaks || {};
+      update("build1k", bp.bp || 0);
+      update("build15noc", bp.noCurse || 0);
+      update("build2k2c", bp.twoCat || 0);
+      update("build25k3s", bp.threeSyn || 0);
+      update("build3kcurse", bp.curse || 0);
       for (const c of all) {
         if (SL.Challenges.claimable(c, save)) {
           // nothing automatic; user claims in UI

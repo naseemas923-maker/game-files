@@ -533,3 +533,112 @@ html, body {
   #hud-left { min-width: 0; max-width: 42vw; }
   .bar { height: 8px; }
 }
+
+/* ---------------- build power HUD ---------------- */
+#hud-build {
+  position: absolute; top: 56px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 4px 12px; font-size: 13px; font-weight: 800;
+  cursor: pointer; pointer-events: auto; user-select: none;
+  backdrop-filter: blur(4px); box-shadow: 0 4px 18px rgba(0,0,0,.35);
+  z-index: 8; max-width: 92vw; white-space: nowrap;
+}
+.hud-bp-label { font-size: 10px; font-weight: 800; color: var(--text-dim); letter-spacing: 1px; }
+#hud-bp { color: var(--gold); font-size: 15px; }
+#hud-bp-next { font-size: 10px; color: var(--text-dim); font-weight: 600; }
+#hud-build .bpbar { flex: none; width: 46px; height: 6px; }
+.bar-fill.bp { background: linear-gradient(90deg, #ff9a3c 0%, #ffd75e 50%, #b7ecff 100%); }
+
+.bp-rank { font-size: 11px; font-weight: 900; letter-spacing: 1px; padding: 1px 6px; border-radius: 6px; border: 1px solid currentColor; }
+.bp-rank.weak { color: #9aa7c7; }
+.bp-rank.developing { color: #57c8ff; }
+.bp-rank.strong { color: #6be08a; }
+.bp-rank.powerful { color: #ffd75e; }
+.bp-rank.elite { color: #ff9e6e; }
+.bp-rank.legendary { color: #ff7ac2; }
+.bp-rank.mythic { color: #ff4d6d; box-shadow: 0 0 12px rgba(255,60,100,.7); }
+
+/* build power change animation */
+#bp-anim-root {
+  position: fixed; top: 130px; left: 50%; transform: translateX(-50%);
+  z-index: 90; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.bp-anim {
+  text-align: center; padding: 8px 18px; border-radius: 12px;
+  background: rgba(8,12,26,.9); border: 1px solid var(--gold); box-shadow: 0 0 26px rgba(255,215,94,.35);
+  animation: bpPop .45s cubic-bezier(.2,1.6,.4,1) both;
+}
+.bp-a-head { font-size: 10px; letter-spacing: 3px; color: var(--text-dim); font-weight: 800; }
+.bp-a-delta { font-size: 26px; font-weight: 900; color: var(--gold); }
+.bp-a-why { font-size: 12px; color: #dbe4ff; font-weight: 600; max-width: 260px; }
+.bp-anim.a-synergy { border-color: #c45dff; box-shadow: 0 0 30px rgba(190,80,255,.6); }
+.bp-anim.a-synergy .bp-a-delta { color: #e6b0ff; }
+.bp-anim.a-evolution { border-color: #ff8a2a; box-shadow: 0 0 34px rgba(255,120,40,.7); }
+.bp-anim.a-evolution .bp-a-delta { color: #ffb066; }
+.bp-anim.a-curse { border-color: #ff3b8d; box-shadow: 0 0 30px rgba(255,60,140,.6); }
+.bp-anim.a-curse .bp-a-delta { color: #ff8ab8; }
+.bp-anim.a-mythic { border-color: #ff4d6d; box-shadow: 0 0 42px rgba(255,60,100,.9); animation: bpMythic 1s ease both; }
+.bp-anim.a-mythic .bp-a-delta { color: #ff6b85; font-size: 32px; }
+.bp-anim.a-big .bp-a-delta { font-size: 30px; }
+@keyframes bpPop { 0% { transform: scale(.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes bpMythic {
+  0% { transform: scale(.4) rotate(-6deg); opacity: 0; }
+  40% { transform: scale(1.25) rotate(3deg); opacity: 1; }
+  70% { transform: scale(.95) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* toast: breakpoint */
+.toast.breakpoint {
+  border-color: var(--gold); color: #ffe9b0; font-weight: 900;
+  background: linear-gradient(180deg, rgba(60,45,10,.94), rgba(30,22,6,.96));
+  box-shadow: 0 0 34px rgba(255,200,60,.65); animation: toastBoss .5s ease both;
+}
+
+/* main-menu build records */
+.build-records {
+  margin-top: 10px; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px;
+  font-size: 12px; color: var(--text-dim); font-weight: 700;
+}
+.build-records b { color: var(--gold); }
+.build-records .res-syn b { color: #c45dff; }
+.build-records .res-spec b { color: #57c8ff; }
+.build-records .res-evo b { color: #ff8a2a; }
+.build-records .res-curse b { color: #ff3b8d; }
+
+/* build breakdown modal */
+.bp-modal { text-align: left; }
+.bp-m-head { display: flex; justify-content: space-between; align-items: center; font-weight: 900; letter-spacing: 1px; }
+.bp-m-head b { font-size: 24px; color: var(--gold); }
+.bp-rankline { font-size: 13px; font-weight: 800; color: #b7ecff; letter-spacing: 1px; }
+.bp-row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; color: #dbe4ff; }
+.bp-row b { color: #e6f7ff; font-weight: 700; }
+.bp-total { display: flex; justify-content: space-between; font-size: 15px; font-weight: 900; border-top: 1px solid var(--line); padding-top: 8px; margin-top: 2px; }
+.bp-total b { color: var(--gold); }
+.bp-ident {
+  display: flex; gap: 10px; align-items: flex-start; padding: 10px; margin-top: 6px;
+  background: rgba(120,160,255,.08); border: 1px solid var(--line); border-radius: 10px;
+}
+.bp-arch-ico { font-size: 26px; line-height: 1; }
+.bp-ident-name { font-weight: 900; font-size: 15px; color: var(--gold); letter-spacing: 1px; }
+.bp-meta { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+.bp-meta b { color: #dbe4ff; }
+.bp-section { font-size: 11px; letter-spacing: 2px; font-weight: 800; color: var(--text-dim); margin-top: 10px; }
+.bp-syn { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; color: #e6d9ff; }
+.bp-syn.muted { color: var(--text-dim); font-style: italic; }
+.bp-syn-v { color: var(--gold); font-weight: 700; white-space: nowrap; }
+
+/* evolution level-up cards */
+.evo-cards { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 14px; }
+.evo-card {
+  width: 210px; text-align: center; padding: 14px; border-radius: 12px; cursor: pointer;
+  background: linear-gradient(180deg, rgba(40,24,60,.96), rgba(20,12,34,.97));
+  border: 2px solid #ff8a2a; box-shadow: 0 0 22px rgba(255,120,40,.4);
+  animation: cardIn .35s cubic-bezier(.2,1.4,.4,1) both;
+}
+.evo-ico { font-size: 30px; }
+.evo-name { font-weight: 900; color: #ffb066; font-size: 15px; letter-spacing: 1px; margin: 6px 0 4px; }
+.evo-desc { font-size: 12px; color: #e6d9ff; min-height: 34px; }
+.evo-stack { font-size: 11px; font-weight: 800; color: #b7ecff; margin-top: 6px; }
+.evo-pow { font-size: 12px; font-weight: 900; color: var(--gold); margin-top: 3px; }

@@ -10,9 +10,9 @@
   "use strict";
   const U = SL.U;
 
-  const RARITY = { common: 0, rare: 1, epic: 2, legendary: 3 };
-  const RARITY_WEIGHTS = { common: 55, rare: 30, epic: 12, legendary: 4 };
-  const RARITY_COLORS = { common: "#9fb6e0", rare: "#3da2ff", epic: "#c45dff", legendary: "#ffb02e" };
+  const RARITY = { common: 0, rare: 1, epic: 2, legendary: 3, cursed: 4 };
+  const RARITY_WEIGHTS = { common: 55, rare: 30, epic: 12, legendary: 4, cursed: 7 };
+  const RARITY_COLORS = { common: "#9fb6e0", rare: "#3da2ff", epic: "#c45dff", legendary: "#ffb02e", cursed: "#ff3b8d" };
 
   const UPGRADES = [
     { id: "razor", name: "Razor Edge", icon: "\u2694", rarity: "common", max: 5, tags: ["dmg"],
@@ -125,6 +125,20 @@
 
     { id: "storm", name: "Thunder Aura", icon: "\u26a1", rarity: "legendary", max: 1, tags: ["lightning", "aoe"],
       desc: () => "A storm aura surrounds you, striking nearby enemies.", apply: (r, l) => { r.thunderAura = true; } },
+
+    /* cursed upgrades — huge power, real drawbacks (risk / reward) */
+    { id: "curse_power", name: "Blood Price", icon: "\u{1F5E1}", rarity: "cursed", max: 3, tags: ["curse", "dmg", "heal"],
+      desc: (l) => "+35% attack damage per level, but -8% max health per level.",
+      apply: (r, l) => { r.dmgMul += 0.35 * l; r.maxHpMul -= 0.08 * l; }, power: 130, cursePower: 160 },
+    { id: "curse_fury", name: "Frenzy Pact", icon: "\u{1F4A2}", rarity: "cursed", max: 2, tags: ["curse", "crit", "multi"],
+      desc: (l) => "+10% crit chance and multi-strikes per level, but -4 armor per level.",
+      apply: (r, l) => { r.critChance += 0.1 * l; r.lightStrikes = Math.max(r.lightStrikes || 1, 1 + l); r.armor -= 4 * l; }, power: 140, cursePower: 170 },
+    { id: "curse_swift", name: "Glass Veins", icon: "\u{1F4A8}", rarity: "cursed", max: 3, tags: ["curse", "speed", "dash"],
+      desc: (l) => "+20% move speed and -15% dash cooldown per level, but -12% max health.",
+      apply: (r, l) => { r.speedMul += 0.2 * l; r.dashCdMul *= Math.pow(0.85, l); r.maxHpMul -= 0.12 * l; }, power: 130, cursePower: 160 },
+    { id: "curse_greed", name: "Midas Touch", icon: "\u{1F4B0}", rarity: "cursed", max: 2, tags: ["curse", "gold"],
+      desc: (l) => "+150% coins per level, but -15% max health.",
+      apply: (r, l) => { r.coinMul += 1.5 * l; r.maxHpMul -= 0.15 * l; }, power: 120, cursePower: 150 },
   ];
 
   const BY_ID = {};

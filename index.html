@@ -10,7 +10,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Stickman: Warrior's Legacy</title>
-<link rel="stylesheet" href="css/style.css?v=4">
+<link rel="stylesheet" href="css/style.css?v=5">
 </head>
 <body>
 <div id="game-root">
@@ -42,6 +42,14 @@
         <div id="hud-gems"><span class="gem-ico">&#9673;</span><span id="hud-gems-val">0</span></div>
         <button id="btn-pause" class="icon-btn" aria-label="Pause">&#10074;&#10074;</button>
       </div>
+    </div>
+
+    <div id="hud-build" title="Build Power">
+      <span class="hud-bp-label">BUILD</span>
+      <span id="hud-bp">0</span>
+      <span id="hud-bp-rank" class="bp-rank weak">WEAK</span>
+      <div class="bar bpbar"><div id="hud-bp-bar" class="bar-fill bp"></div></div>
+      <span id="hud-bp-next">0 / 200</span>
     </div>
 
     <div id="hud-boss" class="hidden">
@@ -100,6 +108,7 @@
             <span class="res-gem"><span class="gem-ico">&#9673;</span><b id="main-gems">0</b></span>
             <span class="res-xp"><span class="xp-ico">&#10022;</span><b id="main-xp">0</b></span>
           </div>
+          <div id="build-records" class="build-records hidden"></div>
           <div style="margin-top:14px;display:flex;align-items:center;gap:8px;max-width:320px">
             <button class="big-btn small" id="btn-weekly" style="flex:1">&#127919; WEEKLY CHALLENGE: OFF</button>
           </div>
@@ -118,6 +127,8 @@
   </div>
 
   <div id="modal-root"></div>
+
+  <div id="bp-anim-root"></div>
 
   <div id="levelup-overlay" class="hidden">
     <div class="levelup-box">
@@ -153,20 +164,21 @@
 
 </div>
 
-<script src="js/utils.js?v=4"></script>
-<script src="js/audio.js?v=4"></script>
-<script src="js/save.js?v=4"></script>
-<script src="js/input.js?v=4"></script>
-<script src="js/particles.js?v=4"></script>
-<script src="js/upgrades.js?v=4"></script>
-<script src="js/progression.js?v=4"></script>
-<script src="js/entities.js?v=4"></script>
-<script src="js/bosses.js?v=4"></script>
-<script src="js/levels.js?v=4"></script>
-<script src="js/leaderboard.js?v=4"></script>
-<script src="js/challenges.js?v=4"></script>
-<script src="js/ui.js?v=4"></script>
-<script src="js/game.js?v=4"></script>
-<script src="js/main.js?v=4"></script>
+<script src="js/utils.js?v=5"></script>
+<script src="js/audio.js?v=5"></script>
+<script src="js/save.js?v=5"></script>
+<script src="js/input.js?v=5"></script>
+<script src="js/particles.js?v=5"></script>
+<script src="js/upgrades.js?v=5"></script>
+<script src="js/buildpower.js?v=5"></script>
+<script src="js/progression.js?v=5"></script>
+<script src="js/entities.js?v=5"></script>
+<script src="js/bosses.js?v=5"></script>
+<script src="js/levels.js?v=5"></script>
+<script src="js/leaderboard.js?v=5"></script>
+<script src="js/challenges.js?v=5"></script>
+<script src="js/ui.js?v=5"></script>
+<script src="js/game.js?v=5"></script>
+<script src="js/main.js?v=5"></script>
 </body>
 </html>

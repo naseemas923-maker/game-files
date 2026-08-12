@@ -21,7 +21,10 @@
       equipment: [],          // owned relic ids
       equippedRelics: [],     // equipped relic ids (max 3)
       permUpgrades: {},       // id -> level
-      personalBest: { score: 0, distance: 0 },
+      personalBest: {
+        score: 0, distance: 0,
+        buildPower: 0, synergy: 0, specialization: 0, evolutions: 0, curses: 0,
+      },
       stats: {
         totalKills: 0, totalBosses: 0, totalRuns: 0, bestCombo: 0, totalTime: 0,
       },

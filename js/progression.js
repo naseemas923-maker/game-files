@@ -123,7 +123,7 @@
       xpMul: 1, coinMul: 1, gemMul: 1, comboMul: 1, rangeMul: 1,
       dashCdMul: 1, dashDistMul: 1, cdMul: 1, ultCdMul: 1, thorns: 0,
       // upgrades
-      upgradeLevels: {}, tags: [], synergiesActive: {},
+      upgradeLevels: {}, tags: [], synergiesActive: {}, evolutions: {},
       burn: false, burnLevel: 0, poison: false, poisonLevel: 0,
       frost: false, frostLevel: 0, lightning: false, lightningLevel: 0,
       explosiveKill: 0, pierce: 0, whirlwind: false, whirlSize: 0,

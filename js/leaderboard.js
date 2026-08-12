@@ -10,7 +10,28 @@
 (function (SL) {
   "use strict";
 
-  const BOARDS = ["global", "weekly", "friends", "class", "personal"];
+  const BOARDS = ["global", "weekly", "friends", "class", "personal", "build", "synergy", "buildboss", "buildcurse"];
+
+  /* which field each board ranks by */
+  function statOf(board, e) {
+    switch (board) {
+      case "build": return e.buildPower || 0;
+      case "synergy": return e.synergy || 0;
+      case "buildboss": return (e.buildPower || 0) + (e.bosses ? 4000 : 0);
+      case "buildcurse": return (e.buildPower || 0);
+      default: return e.score || 0;
+    }
+  }
+
+  function labelFor(board) {
+    switch (board) {
+      case "build": return "Build Power";
+      case "synergy": return "Synergy";
+      case "buildboss": return "Build + Boss";
+      case "buildcurse": return "Cursed Build";
+      default: return "Score";
+    }
+  }
 
   function weekKey() {
     const now = new Date();
@@ -31,6 +52,10 @@
         score: Math.floor(score),
         cls: classes[Math.floor(rng() * classes.length)],
         date: Date.now() - Math.floor(rng() * 7) * 86400000,
+        buildPower: Math.floor(300 + rng() * 2600),
+        synergy: Math.floor(20 + rng() * 80),
+        curses: rng() < 0.4 ? 1 + Math.floor(rng() * 3) : 0,
+        bosses: Math.floor(rng() * 4),
       });
     }
     return out;
@@ -79,7 +104,10 @@
         save.leaderboardLocal[board + (cls ? ":" + cls : "")] = entries;
         SL.Save.save();
       }
-      return entries.slice();
+      entries = entries.slice();
+      if (board === "buildcurse") entries = entries.filter((e) => e.curses > 0);
+      entries.sort((a, b) => statOf(board, b) - statOf(board, a));
+      return entries;
     }
 
     _meEntry() {
@@ -121,8 +149,12 @@
         } else {
           const key = b + (entry.cls ? ":" + entry.cls : "");
           const list = save.leaderboardLocal[key] || [];
-          list.push({ name: entry.name, score: entry.score, cls: entry.cls, date: now });
-          save.leaderboardLocal[key] = list.sort((a, b2) => b2.score - a.score).slice(0, 50);
+          list.push({
+            name: entry.name, score: entry.score, cls: entry.cls, date: now,
+            buildPower: entry.buildPower || 0, synergy: entry.synergy || 0,
+            bosses: entry.bosses || 0, curses: entry.curses || 0,
+          });
+          save.leaderboardLocal[key] = list.sort((a, b2) => statOf(b, b2) - statOf(b, a)).slice(0, 50);
         }
       }
       SL.Save.recordRun(entry);
@@ -145,5 +177,8 @@
   }
 
   SL.Leaderboard = new Leaderboard();
+  SL.Leaderboard.statOf = statOf;
+  SL.Leaderboard.labelFor = labelFor;
+  SL.Leaderboard.BOARDS = BOARDS;
 
 })(window.SL = window.SL || {});
