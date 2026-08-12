@@ -86,27 +86,32 @@
       weaponAngle = -Math.PI * 0.75;
     } else if (pose === "run") {
       const ph = walkPhase;
-      const step = Math.sin(ph);
-      const step2 = Math.sin(ph + Math.PI);
-      const stride = h * 0.19;
-      const bob = Math.abs(step) * h * 0.03;
+      const st = Math.sin(ph);
+      const cs = Math.cos(ph);
+      const stride = h * 0.21;
+      const bob = Math.sin(2 * ph) * h * 0.016;
       const lean = h * 0.05;
-      const fLift = (0.5 * (1 + Math.cos(2 * ph))) * h * 0.14;
-      const bLift = (0.5 * (1 + Math.cos(2 * (ph + Math.PI)))) * h * 0.14;
+      const rock = cs * h * 0.01;
+      const swingF = Math.max(0, cs);
+      const swingB = Math.max(0, -cs);
       feet = {
-        fx: cx + step * stride * f, fy: y - fLift,
-        bx: cx - step * stride * f, by: y - bLift,
+        fx: cx + (st * stride - swingF * h * 0.04) * f,
+        fy: y - swingF * h * 0.055,
+        bx: cx + (-st * stride - swingB * h * 0.04) * f,
+        by: y - swingB * h * 0.055,
       };
-      shX = cx + lean * f;
+      shX = cx + (lean + rock) * f;
       shY = shoulderY + bob;
-      hipX = cx + lean * 0.55 * f;
-      hipY += bob;
+      hipX = cx + lean * 0.6 * f - rock * 0.6 * f;
+      hipY += bob * 0.6;
       hands = {
-        fx: shX + h * 0.2 * f + step2 * h * 0.04 * f, fy: shY - h * 0.02 + step2 * h * 0.06,
-        bx: shX - h * 0.14 * f + step * h * 0.03 * f, by: shY + h * 0.05 + step * h * 0.06,
+        fx: shX + h * 0.19 * f - st * h * 0.05 * f,
+        fy: shY - h * 0.03 + cs * h * 0.055,
+        bx: shX - h * 0.12 * f + st * h * 0.035 * f,
+        by: shY + h * 0.04 - cs * h * 0.04,
       };
-      weaponAngle = -Math.PI * 0.85;
-      headPos = { x: shX + h * 0.03 * f, y: neckY - headR + bob };
+      weaponAngle = -Math.PI * 0.86;
+      headPos = { x: shX + h * 0.03 * f, y: neckY - headR + bob * 0.5 };
     } else if (pose === "attack" || pose === "heavy") {
       const isHeavy = pose === "heavy";
       const wind = isHeavy ? 0.4 : 0.26;
@@ -284,12 +289,7 @@
       ctx.beginPath(); ctx.arc(headPos.x, headPos.y, headR + 1 * s, Math.PI, 0); ctx.fill();
     }
 
-    // ---- legs ----
-    ctx.strokeStyle = bodyCol;
-    ctx.lineWidth = limbW;
-    ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(feet.fx, feet.fy); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(feet.bx, feet.by); ctx.stroke();
-    // feet
+    // ---- feet ----
     ctx.fillStyle = bodyCol;
     ctx.beginPath(); ctx.ellipse(feet.fx, feet.fy, h * 0.05, h * 0.025, 0, 0, U.TAU); ctx.fill();
     ctx.beginPath(); ctx.ellipse(feet.bx, feet.by, h * 0.05, h * 0.025, 0, 0, U.TAU); ctx.fill();
