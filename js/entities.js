@@ -601,6 +601,9 @@
             this.startAttack("light");
           }
           this.attackHoldT = 0.32;
+        } else if (SL.Save.get().settings.autoAttack && this.onGround && this._meleeTargetInRange()) {
+          this.startAttack("light");
+          this.attackHoldT = 0.32;
         }
       } else if (this.attack && this.attack.t > this.attack.dur * 0.55 && this.attackChain < 2) {
         if (inp.wasPressed("attack") && this.onGround) {
@@ -692,6 +695,23 @@
         }
       }
       return out;
+    }
+
+    /* true when a living enemy is within light-attack range in front */
+    _meleeTargetInRange() {
+      const st = this.stats;
+      const range = 96 * st.rangeMul;
+      const f = this.facing;
+      for (const e of this.game.enemies) {
+        if (e.dead) continue;
+        const dx = e.x - this.x;
+        if (dx * f < -24) continue;
+        const dy = Math.abs((e.y - 30 * e.scale) - (this.y - 34));
+        if (dy > 66) continue;
+        const dist = Math.hypot(Math.max(0, dx * f), dy);
+        if (dist < range + (e.w || 20) * 0.5) return true;
+      }
+      return false;
     }
 
     landSlam() {

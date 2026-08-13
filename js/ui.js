@@ -425,6 +425,7 @@
         <div class="setting-row"><label>Music</label><button id="set-mus" class="toggle ${s.musicOn ? "on" : ""}"></button></div>
         <div class="setting-row"><label>Music Volume</label><input id="set-musvol" type="range" min="0" max="1" step="0.05" value="${s.musicVol}"></div>
         <div class="setting-row"><label>Screen Shake</label><button id="set-shake" class="toggle ${s.screenShake ? "on" : ""}"></button></div>
+        <div class="setting-row"><label>Auto Attack</label><button id="set-autoatk" class="toggle ${s.autoAttack ? "on" : ""}"></button></div>
         <div class="setting-row"><label>Damage Numbers</label><button id="set-dmg" class="toggle ${s.damageNumbers ? "on" : ""}"></button></div>
         <div class="setting-row"><label>Reduced Effects (perf)</label><button id="set-lowfx" class="toggle ${s.reduceEffects ? "on" : ""}"></button></div>
         <div class="setting-row"><label>Controls</label><button class="big-btn small" id="set-controls">SHOW CONTROLS</button></div>
@@ -442,6 +443,7 @@
         $("set-mus").addEventListener("click", (e) => { save.settings.musicOn = !save.settings.musicOn; e.target.classList.toggle("on", save.settings.musicOn); SL.Save.setSettings(save.settings); applyAudio(); });
         $("set-musvol").addEventListener("input", (e) => { save.settings.musicVol = parseFloat(e.target.value); SL.Save.setSettings(save.settings); applyAudio(); });
         $("set-shake").addEventListener("click", (e) => { save.settings.screenShake = !save.settings.screenShake; e.target.classList.toggle("on", save.settings.screenShake); SL.Save.setSettings(save.settings); });
+        $("set-autoatk").addEventListener("click", (e) => { save.settings.autoAttack = !save.settings.autoAttack; e.target.classList.toggle("on", save.settings.autoAttack); SL.Save.setSettings(save.settings); SL.Audio.play("click"); });
         $("set-dmg").addEventListener("click", (e) => { save.settings.damageNumbers = !save.settings.damageNumbers; e.target.classList.toggle("on", save.settings.damageNumbers); SL.Save.setSettings(save.settings); });
         $("set-lowfx").addEventListener("click", (e) => { save.settings.reduceEffects = !save.settings.reduceEffects; e.target.classList.toggle("on", save.settings.reduceEffects); SL.Save.setSettings(save.settings); });
         $("set-controls").addEventListener("click", () => { SL.Audio.play("click"); this.showControlsModal(); });
