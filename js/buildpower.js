@@ -263,6 +263,28 @@
     }
     cursePower += Math.max(0, curseCount - 1) * 40;
 
+    /* ---- signature abilities (100 Slashes / Shadow Break / Fracture Strike) ----
+     * Build Power rewards builds whose upgrade tags resonate with a signature
+     * ability's tags (melee/multi-hit/ultimate, dash/shadow/critical, area/ability). */
+    const sigDetails = [];
+    let sigPower = 0;
+    if (SL.Sig && SL.Sig.ABILITIES) {
+      for (const sid of (run.sigAbilities || [])) {
+        const sig = SL.Sig.ABILITIES[sid];
+        if (!sig) continue;
+        let fit = 0, matching = 0;
+        for (const t of sig.tags) {
+          const n = tagCounts[t] || 0;
+          if (n > 0) { matching++; fit += Math.min(60, n * 24); }
+        }
+        if (matching > 0) {
+          const bonus = 35 + fit;
+          sigPower += bonus;
+          sigDetails.push({ name: sig.name, id: sid, tags: sig.tags, fit: Math.round(fit), power: bonus });
+        }
+      }
+    }
+
     /* ---- synergies + elemental affinity ---- */
     const synDetails = [];
     let synergyPower = 0, synW = 0, synS = 0;
@@ -341,7 +363,7 @@
 
     /* ---- efficiency + totals ---- */
     const efficiency = efficiencyOf(run);
-    const subtotal = basePower + levelPower + synergyPower + evolutionPower + specPower + diversityScore + cursePower + completionPower;
+    const subtotal = basePower + levelPower + synergyPower + sigPower + evolutionPower + specPower + diversityScore + cursePower + completionPower;
     const mult = 0.8 + 0.006 * efficiency;
     const total = Math.round(subtotal * mult);
 
@@ -354,6 +376,7 @@
       basePower: Math.round(basePower),
       levelPower: Math.round(levelPower),
       synergyPower: Math.round(synergyPower),
+      sigPower: Math.round(sigPower),
       evolutionPower: Math.round(evolutionPower),
       specPower,
       diversityScore,
@@ -363,6 +386,7 @@
       efficiencyBonus: Math.round(subtotal * (mult - 1)),
       synergyStrength,
       synDetails,
+      sigDetails,
       evoDetails,
       curseCount, curseNames,
       evolutionCount,
@@ -382,6 +406,7 @@
       basePower: 0, levelPower: 0, synergyPower: 0, evolutionPower: 0,
       specPower: 0, diversityScore: 0, cursePower: 0, completionPower: 0,
       efficiency: 50, efficiencyBonus: 0, synergyStrength: 0, synDetails: [], evoDetails: [],
+      sigPower: 0, sigDetails: [],
       curseCount: 0, curseNames: [], evolutionCount: 0,
       identity: "VERSATILE WARRIOR", archId: null, archName: "BALANCED", archIcon: "\u2694", specShare: 0,
       catCount: 0, distinct: 0, synCount: 0,

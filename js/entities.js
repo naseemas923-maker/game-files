@@ -173,6 +173,97 @@
         fx: cx + h * 0.07 * f, fy: y,
         bx: cx - h * 0.07 * f, by: y,
       };
+    } else if (pose === "sigHundredCh") {
+      // 100 Slashes wind-up: weapon back over the shoulder, coiled
+      const k = U.easeInQuad(pt);
+      weaponAngle = -Math.PI * 0.55 + k * 0.25;
+      shX = cx - 0.06 * h * f * k;
+      shY = shoulderY - 0.04 * h * k;
+      hipX = cx - 0.05 * h * f * k;
+      hipY += 0.02 * h;
+      hands = {
+        fx: cx - h * 0.18 * f, fy: cy - h * 0.14 * k,
+        bx: cx - h * 0.1 * f, by: cy + h * 0.1,
+      };
+      feet = {
+        fx: cx + h * 0.1 * f, fy: y,
+        bx: cx - h * 0.14 * f, by: y,
+      };
+    } else if (pose === "sigHundred") {
+      // 100 Slashes dash: coiled sprint pose, blade trailing low
+      weaponAngle = -Math.PI * 0.92;
+      const lean = 0.22 * h * f;
+      shX = cx + lean;
+      hipX = cx + lean * 0.5;
+      shY = shoulderY + Math.sin(t * 40) * h * 0.02;
+      hands = {
+        fx: shX + h * 0.12 * f, fy: cy + h * 0.12,
+        bx: cx - h * 0.22 * f, by: cy + h * 0.1,
+      };
+      feet = {
+        fx: cx + h * 0.12 * f, fy: y,
+        bx: cx - h * 0.2 * f, by: y,
+      };
+      headPos = { x: cx + h * 0.05 * f, y: neckY - headR };
+    } else if (pose === "sigShadowCh") {
+      // Shadow Break charge: low crouch, blade hidden
+      weaponAngle = -Math.PI * 0.4;
+      hipY += 0.07 * h;
+      shY = shoulderY + 0.05 * h;
+      hands = {
+        fx: cx - h * 0.1 * f, fy: cy + h * 0.18,
+        bx: cx + h * 0.08 * f, by: cy + h * 0.16,
+      };
+      feet = {
+        fx: cx + h * 0.14 * f, fy: y,
+        bx: cx - h * 0.16 * f, by: y,
+      };
+      headPos = { x: cx + h * 0.04 * f, y: neckY - headR };
+    } else if (pose === "sigShadow") {
+      // Shadow Break finish: wide cross slash pose, arm extended
+      weaponAngle = Math.PI * 0.28;
+      shX = cx + 0.08 * h * f;
+      hipX = cx - 0.04 * h * f;
+      hipY += 0.02 * h;
+      hands = {
+        fx: cx + h * 0.32 * f, fy: cy - h * 0.16,
+        bx: cx - h * 0.16 * f, by: cy - h * 0.05,
+      };
+      feet = {
+        fx: cx + h * 0.16 * f, fy: y,
+        bx: cx - h * 0.1 * f, by: y,
+      };
+    } else if (pose === "sigFractureCh") {
+      // Fracture charge: weapon raised overhead, energy held high
+      const k = U.easeOutQuad(Math.min(1, pt * 2));
+      weaponAngle = Math.PI * 0.9;
+      shY = shoulderY - 0.06 * h * k;
+      shX = cx + 0.02 * h * f * k;
+      hipY += 0.03 * h;
+      hands = {
+        fx: cx + 0.04 * h * f, fy: cy - h * 0.26 * k,
+        bx: cx - h * 0.12 * f, by: cy + h * 0.14,
+      };
+      feet = {
+        fx: cx + h * 0.1 * f, fy: y,
+        bx: cx - h * 0.12 * f, by: y,
+      };
+    } else if (pose === "sigFracture") {
+      // Fracture slam: weapon buried, full-body follow-through
+      weaponAngle = Math.PI * 1.35;
+      shX = cx + 0.1 * h * f;
+      shY = shoulderY + 0.1 * h;
+      hipX = cx + 0.06 * h * f;
+      hipY += 0.09 * h;
+      hands = {
+        fx: cx + 0.22 * h * f, fy: cy + h * 0.16,
+        bx: cx - h * 0.1 * f, by: cy + h * 0.14,
+      };
+      feet = {
+        fx: cx + h * 0.06 * f, fy: y,
+        bx: cx - h * 0.16 * f, by: y,
+      };
+      headPos = { x: cx + 0.06 * h * f, y: neckY - headR + 0.04 * h };
     } else if (pose === "jump") {
       feet = {
         fx: cx + h * 0.16 * f, fy: y - h * 0.12,
@@ -462,6 +553,10 @@
       this.buffs = {};
       this.spinAnim = 0;
       this.attackHoldT = 0;
+      // signature abilities (100 Slashes / Shadow Break / Fracture Strike)
+      this.abilityCd = { ability1: 0, ability2: 0, ability3: 0 };
+      this.sig = null;        // active signature state machine
+      this.sigGhost = 0;      // fading "shadow silhouette" alpha during shadow break
     }
 
     _xpNeed(lvl) { return Math.round(12 * Math.pow(lvl, 1.5) + 8); }
@@ -493,6 +588,9 @@
       if (this.dashCd > 0) this.dashCd -= dt;
       if (this.specialCd > 0) this.specialCd -= dt;
       if (this.ultCd > 0) this.ultCd -= dt;
+      if (this.abilityCd.ability1 > 0) this.abilityCd.ability1 -= dt;
+      if (this.abilityCd.ability2 > 0) this.abilityCd.ability2 -= dt;
+      if (this.abilityCd.ability3 > 0) this.abilityCd.ability3 -= dt;
       if (this.iFrames > 0) this.iFrames -= dt;
       if (this.hurtFlash > 0) this.hurtFlash -= dt;
       if (this.chainTimer > 0) this.chainTimer -= dt;
@@ -517,6 +615,13 @@
       }
 
       const canAct = !this.dead && this.dashTimer <= 0;
+
+      /* -------- signature ability cinematic lock -------- */
+      if (this.sig) {
+        this.updateSignature(dt);
+        if (this.sigGhost > 0) this.sigGhost -= dt;
+        return;
+      }
 
       /* -------- movement -------- */
       if (this.dashTimer > 0) {
@@ -629,12 +734,19 @@
         this.dashHit = new Set();
       }
 
-      /* -------- special / ultimate -------- */
+      /* -------- special / ultimate / signature abilities -------- */
       if (canAct && inp.wasPressed("special") && this.specialCd <= 0 && this.castTimer <= 0) {
         this.useSpecial();
       }
       if (canAct && inp.wasPressed("ultimate") && this.ultCd <= 0 && this.castTimer <= 0) {
         this.useUltimate();
+      }
+      const sigs = SL.Sig && SL.Sig.ABILITIES ? SL.Sig.ABILITIES : {};
+      for (const id in sigs) {
+        const cfg = sigs[id];
+        if (canAct && inp.wasPressed(cfg.key) && this.abilityCd[cfg.key] <= 0 && this.castTimer <= 0) {
+          this.startSignature(id);
+        }
       }
     }
 
@@ -734,6 +846,7 @@
       const abilityMul = st.abilityDmgMul || 1;
       const dmg = (this.warrior.base.dmg * 14 * st.dmgMul) * abilityMul;
       g.audio.play("shoot");
+      g.hitStop(0.08);
       switch (sp.type) {
         case "spinslash": {
           this.spinAnim = 0.4;
@@ -799,6 +912,7 @@
       g.audio.play("ult");
       g.screenShake(8, 0.3);
       g.flash(0.3);
+      g.hitStop(0.1);
       switch (ult.type) {
         case "bladeStorm": {
           this.castTimer = 0.6;
@@ -833,6 +947,308 @@
           this.buffs.voidStorm = 4.5;
           g.voidStorm(dmg);
           break;
+        }
+      }
+    }
+
+    /* =================================================================
+     * SIGNATURE ABILITIES (100 Slashes / Shadow Break / Fracture Strike)
+     * ================================================================= */
+    startSignature(id) {
+      const g = this.game;
+      const cfg = SL.Sig && SL.Sig.ABILITIES ? SL.Sig.ABILITIES[id] : null;
+      if (!cfg) return;
+      const st = this.stats;
+      const cdMul = st[cfg.cdMulKey] || 1;
+      this.abilityCd[cfg.key] = cfg.cd * cdMul;
+      this.sig = {
+        id, t: 0, dur: cfg.dur, cfg, abilityMul: st.abilityDmgMul || 1,
+        phase: 0, lastStep: -1, struck: new Set(), targets: [],
+        target: null, teleported: false, crossDone: false, slammed: false, finalDone: false,
+      };
+      this.attack = null;
+      this.castTimer = cfg.dur;
+      this.iFrames = Math.max(this.iFrames, cfg.dur + 0.12);
+      this.vy = 0;
+      g.audio.play("ult");
+    }
+
+    updateSignature(dt) {
+      const g = this.game;
+      const s = this.sig;
+      s.t += dt;
+      const cfg = s.cfg;
+      switch (s.id) {
+        case "hundredSlashes": this._sigHundred(dt, cfg, s); break;
+        case "shadowBreak": this._sigShadow(dt, cfg, s); break;
+        case "fractureStrike": this._sigFracture(dt, cfg, s); break;
+      }
+      if (s.t >= s.dur) {
+        this.sig = null;
+        this.attack = null;
+        this.castTimer = 0;
+        g.audio.play("land");
+      }
+    }
+
+    /* nearest living threat (enemy or boss) within range */
+    _sigTarget(range, preferBoss) {
+      const g = this.game;
+      let best = null, bd = range, bossBest = null, bossBd = range;
+      for (const e of g.enemies) {
+        if (e.dead) continue;
+        const d = U.dist(this.x, this.y - 34, e.x, e.y - 30 * e.scale);
+        if (d < bd) { bd = d; best = e; }
+        if (e.elite && d < bossBd) { bossBd = d; bossBest = e; }
+      }
+      if (g.boss && !g.boss.dead) {
+        const d = U.dist(this.x, this.y - 34, g.boss.x, g.boss.y - 70);
+        if (d < bossBd) { bossBd = d; bossBest = g.boss; }
+      }
+      if (preferBoss && bossBest) return bossBest;
+      return best || bossBest;
+    }
+
+    /* up to `n` distinct targets, closest first (for 100 Slashes dashes) */
+    _sigTargets(range, n) {
+      const g = this.game;
+      const pool = [];
+      for (const e of g.enemies) {
+        if (e.dead) continue;
+        const d = U.dist(this.x, this.y - 34, e.x, e.y - 30 * e.scale);
+        if (d < range + e.w) pool.push({ e, d });
+      }
+      if (g.boss && !g.boss.dead) {
+        const d = U.dist(this.x, this.y - 34, g.boss.x, g.boss.y - 70);
+        if (d < range + 40) pool.push({ e: g.boss, d });
+      }
+      pool.sort((a, b) => a.d - b.d);
+      return pool.slice(0, n).map((p) => p.e);
+    }
+
+    /* ---------------- 100 SLASHES ---------------- */
+    _sigHundred(dt, cfg, s) {
+      const g = this.game;
+      if (!s.phase) {
+        s.phase = 1;
+        g.setSlowmo(cfg.slowmo, cfg.slowmoScale);
+        g.camPunch(cfg.windZoom, 0.5);
+        g.spawnAfterimages(3);
+        s.targets = this._sigTargets(cfg.dashRange, 9);
+        SL.UI.banner("100 SLASHES", "synergy");
+      }
+      // wind-up stance (no movement, hold)
+      if (s.t < cfg.dashStart) {
+        if (Math.random() < 0.3) {
+          g.particles.trail(this.x - this.facing * 8, this.y - 34, cfg.color, 3);
+        }
+        return;
+      }
+      // rapid dash / strike phase
+      if (s.t < cfg.dashStart + cfg.dashDur) {
+        const step = Math.floor((s.t - cfg.dashStart) / cfg.stepDur);
+        if (step !== s.lastStep) {
+          s.lastStep = step;
+          const n = s.targets.length;
+          const target = n > 0 ? s.targets[step % n] : null;
+          // leave an afterimage at the previous spot
+          g.spawnAfterimages(1);
+          let tx = this.x + this.facing * 70, ty = this.y;
+          if (target) {
+            tx = target.x + (this.x < target.x ? -1 : 1) * 34;
+            ty = target.y;
+          }
+          this.x = tx;
+          this.y = ty;
+          this.facing = target ? (target.x > this.x ? 1 : -1) : this.facing;
+          g.particles.slash(this.x + this.facing * 24, this.y - 34, this.facing > 0 ? 0 : Math.PI, cfg.color, 1.5);
+          g.particles.burst(this.x + this.facing * 10, this.y - 42, cfg.color, cfg.perSlashParticles, 240, 2.6, 0.3, 0);
+          // grouped damage — all enemies near the strike point, once per step
+          const dmg = g._meleeDmg(cfg.perSlashDmg * s.abilityMul);
+          for (const e of g.enemies) {
+            if (e.dead) continue;
+            const hitId = e.id + ":" + step;
+            if (s.struck.has(hitId)) continue;
+            if (U.dist(this.x, this.y - 34, e.x, e.y - 30 * e.scale) > cfg.slashRadius + e.w) continue;
+            s.struck.add(hitId);
+            g.dealDamage(e, dmg, {
+              fromPlayer: true, effects: true,
+              knock: { x: (e.x > this.x ? 1 : -1) * cfg.perSlashKnock, y: -40 },
+            });
+            g.puff(e.x, e.y - 30, cfg.color, 3);
+          }
+          // boss takes a cut of every step
+          if (g.boss && !g.boss.dead) {
+            const d = U.dist(this.x, this.y - 34, g.boss.x, g.boss.y - 70);
+            if (d < cfg.slashRadius + 60 && !s.struck.has("boss:" + step)) {
+              s.struck.add("boss:" + step);
+              g.dealDamage(g.boss, dmg, { fromPlayer: true, effects: true });
+              g.puff(g.boss.x, g.boss.y - 70, cfg.color, 4);
+            }
+          }
+          g.audio.play("slash");
+        }
+        return;
+      }
+      // final colossal slash
+      if (s.t >= cfg.finalAt && !s.finalDone) {
+        s.finalDone = true;
+        g.screenShake(cfg.shake, 0.32);
+        g.hitStop(cfg.hitStop);
+        g.flash("#ffffff", 0.3);
+        g.camPunch(cfg.zoom, 0.45);
+        g.setSlowmo(0.1, 0.55);
+        g.audio.play("explosion");
+        g.particles.slash(this.x + this.facing * 46, this.y - 34, 0, "#ffffff", 2.8);
+        g.particles.slash(this.x + this.facing * 46, this.y - 34, Math.PI, cfg.color, 2.3);
+        g.particles.shock(this.x, this.y - 34, cfg.color, 64);
+        const dmg = g._meleeDmg(cfg.finalDmg * s.abilityMul);
+        for (const e of g.enemies) {
+          if (e.dead) continue;
+          if (U.dist(this.x, this.y - 34, e.x, e.y - 30 * e.scale) > cfg.finalRadius + e.w) continue;
+          g.dealDamage(e, dmg, {
+            fromPlayer: true, effects: true,
+            knock: { x: (e.x > this.x ? 1 : -1) * cfg.finalKnock, y: -260 },
+          });
+          g.puff(e.x, e.y - 40, "#ffffff", 8);
+        }
+        if (g.boss && !g.boss.dead) {
+          const d = U.dist(this.x, this.y - 34, g.boss.x, g.boss.y - 70);
+          if (d < cfg.finalRadius + 60) {
+            g.dealDamage(g.boss, dmg, { fromPlayer: true, effects: true });
+            g.puff(g.boss.x, g.boss.y - 70, "#ffffff", 10);
+          }
+        }
+      }
+    }
+
+    /* ---------------- SHADOW BREAK ---------------- */
+    _sigShadow(dt, cfg, s) {
+      const g = this.game;
+      if (!s.phase) {
+        s.phase = 1;
+        g.setSlowmo(cfg.slowmo, cfg.slowmoScale);
+        g.audio.play("ult");
+        s.target = this._sigTarget(cfg.range, true);
+        SL.UI.banner("SHADOW BREAK", "synergy");
+      }
+      // silhouette fade + dark shadow particles
+      if (s.t < cfg.teleAt) {
+        this.sigGhost = Math.min(1, s.t / cfg.teleAt);
+        if (Math.random() < 0.5) {
+          g.particles.smoke(this.x + (Math.random() - 0.5) * 10, this.y - 30, "#2a1b4a", 2);
+        }
+        return;
+      }
+      // teleport: vanish and reappear behind the target
+      if (s.t < cfg.appearAt && !s.teleported) {
+        s.teleported = true;
+        this.sigGhost = 0;
+        g.spawnAfterimages(6);
+        g.particles.burst(this.x, this.y - 34, cfg.color, cfg.teleParticles, 200, 3.2, 0.4, 0);
+        if (s.target) {
+          this.x = s.target.x - s.target.facing * 46;
+          this.y = g.groundY;
+          this.vy = 0;
+          this.facing = s.target.x > this.x ? 1 : -1;
+          g.trackPoint(s.target.x, s.target.y - 50, 0.45);
+          g.camPunch(cfg.zoom, 0.45);
+        } else {
+          this.x = U.clamp(this.x + this.facing * cfg.range * 0.6, g.scrollX + 60, g.scrollX + g.viewW - 40);
+          this.facing = this.facing;
+        }
+        g.particles.burst(this.x, this.y - 34, "#2a1b4a", 8, 140, 3, 0.3, 0);
+        return;
+      }
+      // cross-shaped finishing slash
+      if (s.t >= cfg.appearAt && !s.crossDone) {
+        s.crossDone = true;
+        const target = s.target;
+        g.hitStop(cfg.hitStop);
+        g.screenShake(cfg.shake, 0.26);
+        g.flash("#c86bff", 0.25);
+        g.audio.play("crit");
+        const dmg = g._meleeDmg(cfg.dmg * s.abilityMul);
+        const ex = target ? target.x : this.x + this.facing * 34;
+        const ey = target ? target.y - 34 : this.y - 34;
+        if (target && !target.dead) {
+          g.dealDamage(target, dmg, {
+            fromPlayer: true, effects: true, crit: true,
+            knock: { x: this.facing * cfg.knock, y: -220 },
+          });
+          g.puff(target.x, target.y - 44, "#c86bff", cfg.crossParticles);
+        }
+        g.particles.slash(ex, ey, 0, "#c86bff", 2.4);
+        g.particles.slash(ex, ey, Math.PI / 2, "#e8c4ff", 1.9);
+        g.particles.burst(ex, ey, "#e8c4ff", 10, 260, 3, 0.4, 0);
+        // splash damage to enemies near the strike point
+        for (const e of g.enemies) {
+          if (e.dead || e === target) continue;
+          if (U.dist(this.x, this.y - 34, e.x, e.y - 30 * e.scale) > cfg.splash + e.w) continue;
+          g.dealDamage(e, g._meleeDmg(cfg.dmg * cfg.splashDmgMul * s.abilityMul), {
+            fromPlayer: true, effects: true,
+            knock: { x: (e.x > this.x ? 1 : -1) * 260, y: -120 },
+          });
+          g.puff(e.x, e.y - 40, "#c86bff", 5);
+        }
+      }
+    }
+
+    /* ---------------- FRACTURE STRIKE ---------------- */
+    _sigFracture(dt, cfg, s) {
+      const g = this.game;
+      if (!s.phase) {
+        s.phase = 1;
+        g.audio.play("bossWarn");
+        g.setSlowmo(cfg.slowmo, cfg.slowmoScale);
+        g.camPunch(1.06, 0.5);
+        SL.UI.banner("FRACTURE STRIKE", "synergy");
+      }
+      // charge: weapon raised, energy gathers, crack forms beneath
+      if (s.t < cfg.slamAt) {
+        const k = Math.min(1, s.t / cfg.slamAt);
+        g.particles.spawn({
+          x: this.x + (Math.random() - 0.5) * 20, y: this.y - 30 + (Math.random() - 0.5) * 20,
+          life: 0.28, size: 3 + k * 14, color: cfg.color, type: "glow", grow: 40, drag: 0.92,
+        });
+        if (k > 0.45 && !s.crackSpawned) {
+          s.crackSpawned = true;
+          g.groundCrack(this.x, this.y, cfg.color, 26, 1.0);
+        }
+        return;
+      }
+      // slam
+      if (s.t >= cfg.slamAt && !s.slammed) {
+        s.slammed = true;
+        this.y = g.groundY;
+        this.vy = 0;
+        this.onGround = true;
+        g.screenShake(cfg.shake, 0.35);
+        g.hitStop(cfg.hitStop);
+        g.flash(cfg.color, 0.28);
+        g.camPunch(cfg.zoom, 0.5);
+        g.audio.play("explosion");
+        g.groundCrack(this.x, this.y, cfg.color, cfg.radius, cfg.crackDur);
+        g.particles.shock(this.x, this.y, cfg.color, cfg.radius);
+        g.particles.burst(this.x, this.y - 10, cfg.color, cfg.crackParticles, 400, 4, 0.6, 420);
+        g.spawnAfterimages(3);
+        const dmg = g._meleeDmg(cfg.dmg * s.abilityMul);
+        for (const e of g.enemies) {
+          if (e.dead) continue;
+          const d = U.dist(this.x, this.y, e.x, e.y - 30 * e.scale);
+          if (d > cfg.radius + e.w) continue;
+          g.dealDamage(e, dmg, {
+            fromPlayer: true, effects: true, stun: cfg.stun,
+            knock: { x: (e.x > this.x ? 1 : -1) * cfg.knock, y: -cfg.launch },
+          });
+          g.puff(e.x, e.y - 30, cfg.color, 6);
+        }
+        if (g.boss && !g.boss.dead) {
+          const d = U.dist(this.x, this.y, g.boss.x, g.boss.y - 70);
+          if (d < cfg.radius + 60) {
+            g.dealDamage(g.boss, dmg, { fromPlayer: true, effects: true, stun: cfg.stun * 0.4 });
+            g.puff(g.boss.x, g.boss.y - 70, cfg.color, 8);
+          }
         }
       }
     }
@@ -894,6 +1310,12 @@
 
     pose() {
       if (this.dead) return "dead";
+      if (this.sig) {
+        const id = this.sig.id;
+        if (id === "shadowBreak") return this.sig.t < this.sig.cfg.teleAt ? "sigShadowCh" : "sigShadow";
+        if (id === "fractureStrike") return this.sig.t < this.sig.cfg.slamAt ? "sigFractureCh" : "sigFracture";
+        return this.sig.t < this.sig.cfg.dashStart ? "sigHundredCh" : "sigHundred";
+      }
       if (this.dashTimer > 0) return "dash";
       if (this.attack) {
         if (this.attack.type === "heavy") return "heavy";
@@ -937,14 +1359,33 @@
       const weapon = this._weaponConfig();
       const outfit = { helmet: this.warrior.id === "guardian" ? true : false, cloak: this.warrior.id === "berserker" ? "#7a2c14" : (this.warrior.id === "assassin" ? "#3b1660" : null) };
       const pose = this.pose();
-      const pt = this.attack ? Math.min(1, this.attack.t / this.attack.dur) : 0;
+      let pt = 0;
+      if (this.sig) {
+        const sc = this.sig.cfg;
+        if (this.sig.id === "hundredSlashes") pt = this.sig.t < sc.dashStart ? U.clamp(this.sig.t / sc.dashStart, 0, 1) : 1;
+        else if (this.sig.id === "shadowBreak") pt = U.clamp(this.sig.t / sc.teleAt, 0, 1);
+        else if (this.sig.id === "fractureStrike") pt = U.clamp(this.sig.t / sc.slamAt, 0, 1);
+      } else if (this.attack) {
+        pt = Math.min(1, this.attack.t / this.attack.dur);
+      }
       const runSpeed = this.dashTimer > 0 ? 1.4 : Math.min(1, Math.abs(this.vx) / (this.baseSpeed * this.stats.speedMul));
+      // shadow break silhouette fade
+      let pColor = this.warrior.color;
+      let pAlpha = this.hurtFlash > 0 && Math.floor(time * 20) % 2 === 0 ? 0.5 : 1;
+      if (this.sig && this.sig.id === "shadowBreak") {
+        if (this.sig.t < this.sig.cfg.teleAt) {
+          pColor = "#1a1030";
+          pAlpha = Math.min(pAlpha, 1 - this.sigGhost * 0.92);
+        } else if (this.sig.t < this.sig.cfg.appearAt) {
+          pAlpha = 0;
+        }
+      }
       drawStickman(ctx, {
         x: this.x, y: this.y, scale: 1, facing: this.facing, t: time,
-        speed: runSpeed, pose, poseT: pt, color: this.warrior.color,
+        speed: runSpeed, pose, poseT: pt, color: pColor,
         weapon, shield: this.warrior.id === "guardian",
         outfit, glow: this.hurtFlash > 0 ? "#ff5252" : null,
-        alpha: this.hurtFlash > 0 && Math.floor(time * 20) % 2 === 0 ? 0.5 : 1,
+        alpha: pAlpha,
       });
       ctx.globalAlpha = 1;
 

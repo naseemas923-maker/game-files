@@ -10,7 +10,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Stickman: Warrior's Legacy</title>
-<link rel="stylesheet" href="css/style.css?v=7">
+<link rel="stylesheet" href="css/style.css?v=8">
 </head>
 <body>
 <div id="game-root">
@@ -58,8 +58,11 @@
     </div>
 
     <div id="hud-abilities">
-      <div class="ab-item" id="ab-special"><div class="ab-icon" id="ab-special-ico">&#9889;</div><div class="ab-cd" id="ab-special-cd"></div><span class="ab-key">E</span></div>
-      <div class="ab-item" id="ab-ultimate"><div class="ab-icon" id="ab-ultimate-ico">&#9733;</div><div class="ab-cd" id="ab-ultimate-cd"></div><span class="ab-key">Q</span></div>
+      <div class="ab-item" id="ab-sig1"><div class="ab-icon">&#10022;</div><div class="ab-cd" id="ab-sig1-cd"></div><span class="ab-key">Q</span></div>
+      <div class="ab-item" id="ab-sig2"><div class="ab-icon">&#9789;</div><div class="ab-cd" id="ab-sig2-cd"></div><span class="ab-key">E</span></div>
+      <div class="ab-item" id="ab-sig3"><div class="ab-icon">&#9670;</div><div class="ab-cd" id="ab-sig3-cd"></div><span class="ab-key">R</span></div>
+      <div class="ab-item" id="ab-special"><div class="ab-icon" id="ab-special-ico">&#9889;</div><div class="ab-cd" id="ab-special-cd"></div><span class="ab-key">F</span></div>
+      <div class="ab-item" id="ab-ultimate"><div class="ab-icon" id="ab-ultimate-ico">&#9733;</div><div class="ab-cd" id="ab-ultimate-cd"></div><span class="ab-key">G</span></div>
       <div class="ab-item" id="ab-dash"><div class="ab-icon" id="ab-dash-ico">&#10145;</div><div class="ab-cd" id="ab-dash-cd"></div><span class="ab-key">SHIFT</span></div>
     </div>
   </div>
@@ -70,10 +73,13 @@
       <div id="joystick-base"><div id="joystick-knob"></div></div>
     </div>
     <div id="action-buttons">
-      <button class="tbtn jump" id="btn-jump" aria-label="Jump">&#8593;</button>
-      <button class="tbtn dash" id="btn-dash" aria-label="Dash">&#8594;</button>
-      <button class="tbtn heavy" id="btn-heavy" aria-label="Heavy">&#9876;</button>
+      <button class="tbtn ability1" id="btn-ability1" aria-label="100 Slashes">&#10022;</button>
       <button class="tbtn attack" id="btn-attack" aria-label="Attack">&#9876;</button>
+      <button class="tbtn ability3" id="btn-ability3" aria-label="Fracture Strike">&#9670;</button>
+      <button class="tbtn jump" id="btn-jump" aria-label="Jump">&#8593;</button>
+      <button class="tbtn heavy" id="btn-heavy" aria-label="Heavy">&#9876;</button>
+      <button class="tbtn dash" id="btn-dash" aria-label="Dash">&#8594;</button>
+      <button class="tbtn ability2" id="btn-ability2" aria-label="Shadow Break">&#9789;</button>
       <button class="tbtn special" id="btn-special" aria-label="Special">&#9889;</button>
       <button class="tbtn ultimate" id="btn-ultimate" aria-label="Ultimate">&#9733;</button>
     </div>
@@ -164,23 +170,24 @@
 
 </div>
 
-<script src="js/utils.js?v=7"></script>
-<script src="js/audio.js?v=7"></script>
-<script src="js/save.js?v=7"></script>
-<script src="js/input.js?v=7"></script>
-<script src="js/particles.js?v=7"></script>
-<script src="js/upgrades.js?v=7"></script>
-<script src="js/buildpower.js?v=7"></script>
-<script src="js/progression.js?v=7"></script>
-<script src="js/entities.js?v=7"></script>
-<script src="js/bosses.js?v=7"></script>
-<script src="js/levels.js?v=7"></script>
-<script src="js/worldgen.js?v=7"></script>
-<script src="js/aidirector.js?v=7"></script>
-<script src="js/leaderboard.js?v=7"></script>
-<script src="js/challenges.js?v=7"></script>
-<script src="js/ui.js?v=7"></script>
-<script src="js/game.js?v=7"></script>
-<script src="js/main.js?v=7"></script>
+<script src="js/utils.js?v=8"></script>
+<script src="js/signatures.js?v=8"></script>
+<script src="js/audio.js?v=8"></script>
+<script src="js/save.js?v=8"></script>
+<script src="js/input.js?v=8"></script>
+<script src="js/particles.js?v=8"></script>
+<script src="js/upgrades.js?v=8"></script>
+<script src="js/buildpower.js?v=8"></script>
+<script src="js/progression.js?v=8"></script>
+<script src="js/entities.js?v=8"></script>
+<script src="js/bosses.js?v=8"></script>
+<script src="js/levels.js?v=8"></script>
+<script src="js/worldgen.js?v=8"></script>
+<script src="js/aidirector.js?v=8"></script>
+<script src="js/leaderboard.js?v=8"></script>
+<script src="js/challenges.js?v=8"></script>
+<script src="js/ui.js?v=8"></script>
+<script src="js/game.js?v=8"></script>
+<script src="js/main.js?v=8"></script>
 </body>
 </html>

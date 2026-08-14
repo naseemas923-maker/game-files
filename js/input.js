@@ -21,13 +21,45 @@
         dash: { held: false, pressed: false },
         special: { held: false, pressed: false },
         ultimate: { held: false, pressed: false },
+        ability1: { held: false, pressed: false },
+        ability2: { held: false, pressed: false },
+        ability3: { held: false, pressed: false },
         pause: { held: false, pressed: false },
       };
       this.joystick = { active: false, id: null, originX: 0, originY: 0, x: 0, y: 0, magnitude: 0 };
       this.touchMode = ("ontouchstart" in window) || navigator.maxTouchPoints > 0;
       this._virtual = {}; // action -> {held, pressed}
+      this.keymap = null;
       this._bindKeyboard();
       this._bindPointer();
+    }
+
+    /* default bindings; overridable per-action via settings.keymap */
+    defaultKeymap() {
+      const d = {};
+      if (SL.Sig && SL.Sig.KEYS) {
+        for (const a in SL.Sig.KEYS) d[a] = SL.Sig.KEYS[a].def;
+      }
+      d.ability1 = d.ability1 || "KeyQ";
+      d.ability2 = d.ability2 || "KeyE";
+      d.ability3 = d.ability3 || "KeyR";
+      d.special = d.special || "KeyF";
+      d.ultimate = d.ultimate || "KeyG";
+      return d;
+    }
+
+    _loadKeymap() {
+      const saved = (SL.Save && SL.Save.get()) ? SL.Save.get().settings.keymap : null;
+      const def = this.defaultKeymap();
+      this.keymap = Object.assign({}, def, saved || {});
+    }
+
+    /* invert: code -> action, for keydown dispatch */
+    _codeToAction() {
+      const m = {};
+      for (const a in this.keymap) m[this.keymap[a]] = a;
+      if (this.keymap.dash === "ShiftLeft") m.ShiftRight = "dash";
+      return m;
     }
 
     /* ---------- virtual button press (DOM touch buttons) ---------- */
@@ -85,41 +117,53 @@
 
     /* ---------- keyboard ---------- */
     _bindKeyboard() {
-      const keymap = {
-        ArrowLeft: "left", KeyA: "left",
-        ArrowRight: "right", KeyD: "right",
-        ArrowUp: "up", KeyW: "up",
-        ArrowDown: "down", KeyS: "down",
-        Space: "jump", KeyJ: "attack",
-        MouseLeft: "attack",
-        KeyK: "heavy",
-        ShiftLeft: "dash", ShiftRight: "dash",
-        KeyE: "special",
-        KeyQ: "ultimate",
-        KeyP: "pause", Escape: "pause",
-      };
+      this._loadKeymap();
       window.addEventListener("keydown", (e) => {
         if (e.repeat) return;
-        const a = keymap[e.code];
-        if (!a) return;
+        const action = this._codeToAction()[e.code];
         if (e.code === "Space") e.preventDefault();
-        if (a === "left" || a === "right" || a === "up" || a === "down") {
+        if (action === "left" || action === "right" || action === "up" || action === "down") {
           this._keyAxis(e.code, true);
+        } else if (action) {
+          this._setAction(action, true);
         } else {
-          this._setAction(a, true);
+          // fixed directional fallbacks (never remappable)
+          const fixed = { ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right", ArrowUp: "up", KeyW: "up", ArrowDown: "down", KeyS: "down" };
+          const fa = fixed[e.code];
+          if (fa === "left" || fa === "right" || fa === "up" || fa === "down") {
+            this._keyAxis(e.code, true);
+            if (fa === "up") this._setAction("jump", true);
+          }
         }
       });
       window.addEventListener("keyup", (e) => {
-        const a = keymap[e.code];
-        if (!a) return;
-        if (a === "left" || a === "right" || a === "up" || a === "down") {
+        const action = this._codeToAction()[e.code];
+        if (action === "left" || action === "right" || action === "up" || action === "down") {
           this._keyAxis(e.code, false);
-          if (a === "up") this._setAction("jump", false);
+          if (action === "up") this._setAction("jump", false);
+        } else if (action) {
+          this._setAction(action, false);
         } else {
-          this._setAction(a, false);
+          const fixed = { ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right", ArrowUp: "up", KeyW: "up", ArrowDown: "down", KeyS: "down" };
+          const fa = fixed[e.code];
+          if (fa === "left" || fa === "right" || fa === "up" || fa === "down") {
+            this._keyAxis(e.code, false);
+            if (fa === "up") this._setAction("jump", false);
+          }
         }
       });
       window.addEventListener("blur", () => { this._resetAll(); });
+    }
+
+    /* rebind an action to a new KeyboardEvent.code and persist to settings */
+    rebind(action, code) {
+      const keymap = Object.assign({}, this.keymap);
+      keymap[action] = code;
+      this.keymap = keymap;
+      const save = SL.Save.get();
+      save.settings.keymap = keymap;
+      SL.Save.setSettings(save.settings);
+      return true;
     }
 
     _keyAxis(code, down) {

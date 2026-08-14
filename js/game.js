@@ -81,7 +81,18 @@
       this.shake = { t: 0, mag: 0 };
       this.flashT = 0;
       this.flashColor = "#ffffff";
+      this.flashMax = 0.2;
       this.deathTimer = 0;
+
+      // cinematic combat: slow-motion, hit-stop, camera zoom/tracking
+      this.slowmoT = 0;
+      this.slowmoScale = 1;
+      this.hitStopT = 0;
+      this.camZoom = 1;
+      this.camZoomTarget = 1;
+      this.camZoomT = 0;
+      this.camTrack = null;
+      this.groundCracks = [];
 
       this.last = 0;
       this.elapsed = 0;
@@ -155,6 +166,9 @@
       this.weeklyMods = save.weeklyOn ? SL.Challenges.weeklyModifiers() : [];
       SL.Challenges.applyWeeklyModifiers(this.run, this.weeklyMods);
 
+      // signature abilities owned by every warrior (Build Power recognizes them)
+      this.run.sigAbilities = SL.Sig && SL.Sig.ABILITIES ? Object.keys(SL.Sig.ABILITIES) : [];
+
       this.seed = (Math.random() * 1e9) | 0;
       this.levelGen.chunks = {};
       this.levelGen.seed = this.seed;
@@ -202,6 +216,10 @@
       this.deathTimer = 0;
       this._ended = false;
       this.clones = [];
+      this.slowmoT = 0; this.hitStopT = 0;
+      this.camZoom = 1; this.camZoomTarget = 1; this.camZoomT = 0;
+      this.camTrack = null;
+      this.groundCracks = [];
 
       this.player = new SL.Entities.Player(this, this.warrior);
       this.player.resetPosition(this.groundY, this.scrollX + this.viewW * 0.32);
@@ -358,25 +376,98 @@
       const dt = U.clamp(raw, 0, 0.033);
       this.elapsed += dt;
 
-      if (this.state === "playing") this.update(dt);
+      // hit-stop: freeze the simulation for an impactful impact pause
+      if (this.hitStopT > 0) {
+        this.hitStopT -= dt;
+        this._updateCamera(dt);
+        this.render(dt);
+        if (this.state === "playing") SL.UI.updateHUD(this);
+        return;
+      }
+
+      // slow-motion (ability wind-ups / finishers)
+      let simDt = dt;
+      if (this.slowmoT > 0) {
+        this.slowmoT -= dt;
+        simDt = dt * this.slowmoScale;
+      }
+      this._updateCamera(dt);
+
+      if (this.state === "playing") this.update(simDt);
       else if (this.state === "dead") {
-        this.deathTimer -= dt;
-        SL.Particles.update(dt);
-        this._updateShake(dt);
+        this.deathTimer -= simDt;
+        this._updateShake(simDt);
         if (this.deathTimer <= 0 && !this._ended) this.endRun(false);
       } else {
         // levelup / paused / menu: update particles only for pretty frozen scene
-        SL.Particles.update(dt * 0.5);
-        this._updateShake(dt);
+        this._updateShake(simDt);
       }
+      SL.Particles.update(this.state === "playing" ? simDt : simDt * 0.5);
       this.render(dt);
       if (this.state === "playing") SL.UI.updateHUD(this);
+    }
+
+    /* cinematic camera easing (zoom returns to 1, tracking expires) */
+    _updateCamera(dt) {
+      if (this.camZoomT > 0) {
+        this.camZoomT -= dt;
+      } else {
+        this.camZoomTarget = 1;
+      }
+      this.camZoom += (this.camZoomTarget - this.camZoom) * Math.min(1, dt * 12);
+      if (Math.abs(this.camZoom - 1) < 0.001) this.camZoom = 1;
+      if (this.camTrack) {
+        this.camTrack.t -= dt;
+        if (this.camTrack.t <= 0) this.camTrack = null;
+      }
+    }
+
+    /* cinematic time-control helpers */
+    setSlowmo(dur, scale) {
+      this.slowmoT = Math.max(this.slowmoT, dur);
+      this.slowmoScale = scale;
+    }
+    hitStop(dur) {
+      this.hitStopT = Math.max(this.hitStopT, dur);
+    }
+    camPunch(zoom, dur) {
+      this.camZoomTarget = zoom;
+      this.camZoomT = Math.max(this.camZoomT, dur);
+    }
+    trackPoint(x, y, dur) {
+      this.camTrack = { x, y, t: dur };
+    }
+
+    /* ground fracture crack (Fracture Strike) */
+    groundCrack(x, y, color, maxR, dur) {
+      const rays = 7, pts = [];
+      for (let i = 0; i < rays; i++) {
+        const a = (i / rays) * U.TAU + Math.random() * 0.5;
+        const ray = [{ x: 0, y: 0 }];
+        let px = 0, py = 0;
+        for (let s = 1; s <= 5; s++) {
+          px += Math.cos(a + (Math.random() - 0.5) * 0.8) * (maxR / 5) * (0.55 + Math.random() * 0.9);
+          py += (Math.random() - 0.5) * 4;
+          ray.push({ x: px, y: py });
+        }
+        pts.push(ray);
+      }
+      this.groundCracks.push({ x, y, t: 0, life: dur, maxR, color, pts, growT: 0.34 });
+    }
+
+    _updateGroundCracks(dt) {
+      for (let i = this.groundCracks.length - 1; i >= 0; i--) {
+        const c = this.groundCracks[i];
+        c.t += dt;
+        if (c.t >= c.life) this.groundCracks.splice(i, 1);
+      }
     }
 
     update(dt) {
       const p = this.player;
       if (!p) return;
       this.timeSurvived += dt;
+      this._updateGroundCracks(dt);
 
       /* world scroll — only moves while the player walks, both directions.
        * Forward ramps world speed up, backward ramps it down (never below 0). */
@@ -449,6 +540,12 @@
             this.puff(e.x, e.y - 30, "#ffe1ea", 4);
             hitCount++;
             if (hitCount >= pierce) break;
+          }
+          // lightweight hit-stop on impactful swings (not every minor hit)
+          if (hitCount > 0 && !p.attack._hs) {
+            p.attack._hs = true;
+            if (hb.type === "heavy") this.hitStop(0.06);
+            else if (p.attack.type === "light" && (p.attack.combo === 2)) this.hitStop(0.03);
           }
         }
       }
@@ -1500,6 +1597,37 @@
       }
     }
 
+    _drawGroundCracks(ctx) {
+      for (const c of this.groundCracks) {
+        const k = 1 - c.t / c.life;
+        const grow = Math.min(1, c.t / c.growT);
+        // glow bed
+        ctx.globalAlpha = k * 0.22;
+        const bed = ctx.createRadialGradient(c.x, c.y, 4, c.x, c.y, c.maxR * grow);
+        bed.addColorStop(0, c.color);
+        bed.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = bed;
+        ctx.beginPath(); ctx.arc(c.x, c.y, c.maxR * grow, 0, U.TAU); ctx.fill();
+        // crack rays
+        ctx.globalAlpha = k * 0.9;
+        ctx.strokeStyle = c.color;
+        ctx.lineWidth = 3;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        for (const ray of c.pts) {
+          ctx.moveTo(c.x, c.y);
+          for (let i = 1; i < ray.length; i++) {
+            ctx.lineTo(c.x + ray[i].x * grow, c.y + ray[i].y * grow);
+          }
+        }
+        ctx.stroke();
+        ctx.globalAlpha = k * 0.5;
+        ctx.lineWidth = 6;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+
     _drawDarkness(ctx, viewW, viewH) {
       if (!this.darkness) return;
       const p = this.player;
@@ -1513,9 +1641,10 @@
       ctx.fillRect(this.scrollX, -40, viewW, viewH + 80);
     }
 
-    flash(color) {
-      this.flashT = 0.2;
+    flash(color, dur) {
+      this.flashT = dur || 0.2;
       this.flashColor = color || "#ffffff";
+      this.flashMax = this.flashT;
     }
 
     toast(msg, kind) {
@@ -1573,13 +1702,22 @@
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-      // world transform
+      // world transform (cinematic zoom about a focus point + shake)
       let sx = 0, sy = 0;
       if (this.shake.t > 0) {
         sx = (Math.random() - 0.5) * this.shake.mag * this.shake.t;
         sy = (Math.random() - 0.5) * this.shake.mag * this.shake.t;
       }
-      ctx.setTransform(scale * dpr, 0, 0, scale * dpr, (-scrollX + sx) * scale * dpr, sy * scale * dpr);
+      let fx, fy;
+      if (this.camTrack) { fx = this.camTrack.x; fy = this.camTrack.y; }
+      else if (this.player) { fx = this.player.x; fy = this.player.y - 40; }
+      else { fx = this.scrollX + viewW / 2; fy = this.groundY - 80; }
+      const z = this.camZoom;
+      ctx.setTransform(
+        scale * dpr * z, 0, 0, scale * dpr * z,
+        ((fx - fx * z - scrollX) * scale + sx) * dpr,
+        ((fy - fy * z) * scale + sy) * dpr
+      );
 
       // background
       this.levelGen.drawBackground(ctx, this.elapsed, scrollX, viewW, viewH, this.groundY);
@@ -1650,6 +1788,9 @@
         ctx.stroke();
         ctx.globalAlpha = 1;
       }
+
+      // ground cracks (Fracture Strike aftermath)
+      this._drawGroundCracks(ctx);
 
       // pickups
       for (const pk of this.pickups) {
@@ -1733,7 +1874,7 @@
       if (this.flashT > 0) {
         this.flashT -= dt;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.globalAlpha = Math.max(0, this.flashT / 0.2) * 0.5;
+        ctx.globalAlpha = Math.max(0, this.flashT / (this.flashMax || 0.2)) * 0.5;
         ctx.fillStyle = this.flashColor;
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         ctx.globalAlpha = 1;

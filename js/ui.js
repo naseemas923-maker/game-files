@@ -501,6 +501,9 @@
         inp.wireButton($("btn-jump"), "jump");
         inp.wireButton($("btn-special"), "special");
         inp.wireButton($("btn-ultimate"), "ultimate");
+        inp.wireButton($("btn-ability1"), "ability1");
+        inp.wireButton($("btn-ability2"), "ability2");
+        inp.wireButton($("btn-ability3"), "ability3");
         inp.enableSwipes();
       }
       const tc = document.getElementById("touch-controls");
@@ -555,20 +558,59 @@
       }
 
       // abilities
+      const sigs = SL.Sig && SL.Sig.ABILITIES ? SL.Sig.ABILITIES : {};
+      const sigIds = ["hundredSlashes", "shadowBreak", "fractureStrike"];
+      const sigEls = { hundredSlashes: $("ab-sig1"), shadowBreak: $("ab-sig2"), fractureStrike: $("ab-sig3") };
+      sigIds.forEach((id) => {
+        const cfg = sigs[id];
+        const el = sigEls[id];
+        if (!cfg || !el) return;
+        const cdMul = p.stats[cfg.cdMulKey] || 1;
+        this.setAbility(el, cfg.key, p.abilityCd[cfg.key], cfg.cd * cdMul, cfg.icon);
+        const keyEl = el.querySelector(".ab-key");
+        if (keyEl) keyEl.textContent = this._keyLabel(cfg.key);
+      });
       this.setAbility($("ab-special"), "special", p.specialCd, g.warrior.special.cooldown * p.stats.cdMul, g.warrior.special.icon);
       this.setAbility($("ab-ultimate"), "ultimate", p.ultCd, g.warrior.ultimate.cooldown * p.stats.ultCdMul, g.warrior.ultimate.icon);
       this.setAbility($("ab-dash"), "dash", p.dashCd, 2.1 * p.stats.dashCdMul, "\u27a1");
     },
 
+    /* human-readable key label for an action */
+    _keyLabel(action) {
+      if (action === "dash") return "SHIFT";
+      const map = this._codeMap();
+      const code = map[action];
+      if (!code) return action.toUpperCase();
+      return code.replace("Key", "").replace("ShiftLeft", "SHIFT").replace("ShiftRight", "SHIFT").toUpperCase();
+    },
+
+    _codeMap() {
+      const km = (SL.Game && SL.Game.input) ? SL.Game.input.keymap : null;
+      const m = {};
+      if (km) for (const a in km) m[a] = km[a];
+      return m;
+    },
+
     setAbility(el, name, cd, max, icon) {
+      if (!el) return;
       const frac = max > 0 ? U.clamp(cd / max, 0, 1) : 0;
       const overlay = el.querySelector(".ab-cd");
       if (frac <= 0) {
-        overlay.style.display = "none";
+        overlay.style.display = "flex";
+        overlay.textContent = "READY";
+        overlay.style.clipPath = "none";
+        overlay.style.background = "rgba(45,220,140,.16)";
+        overlay.style.color = "#6dffb0";
+        overlay.style.fontSize = "8px";
+        el.classList.add("ready");
       } else {
+        el.classList.remove("ready");
         overlay.style.display = "flex";
         overlay.style.clipPath = "inset(0 0 " + (frac * 100).toFixed(0) + "% 0)";
         overlay.textContent = cd > 0 ? cd.toFixed(1) : "";
+        overlay.style.background = "rgba(4,6,14,.72)";
+        overlay.style.color = "#fff";
+        overlay.style.fontSize = "12px";
       }
     },
 
@@ -643,6 +685,7 @@
         ["Base Upgrades", info.basePower],
         ["Upgrade Levels", info.levelPower],
         ["Synergies", info.synergyPower],
+        ["Signature Abilities", info.sigPower],
         ["Evolutions", info.evolutionPower],
         ["Specialization", info.specPower],
         ["Diversity", info.diversityScore],
@@ -656,6 +699,9 @@
       const evoList = info.evoDetails.length ? info.evoDetails.map((e) =>
         '<div class="bp-syn"><span>\u{1F525} ' + e.name + '</span><span class="bp-syn-v">+' + (e.power + e.fit) + ' (fit +' + e.fit + ')</span></div>'
       ).join("") : "";
+      const sigList = info.sigDetails.length ? info.sigDetails.map((s) =>
+        '<div class="bp-syn"><span>\u2727 ' + s.name + '</span><span class="bp-syn-v">+' + s.power + ' \u00b7 fit +' + s.fit + '</span></div>'
+      ).join("") : "";
       box.innerHTML = '<div class="modal-box bp-modal">' +
         '<div class="bp-m-head"><span>BUILD POWER</span><b>' + U.formatNum(info.total) + '</b></div>' +
         '<div class="bp-rankline">' + info.rank + (info.nextRank ? " \u2192 " + info.nextRank : " (MAX)") + '</div>' +
@@ -667,6 +713,7 @@
         '<div class="bp-meta">Synergy Strength: <b>' + info.synergyStrength + '/100</b> \u00b7 Build Efficiency: <b>' + info.efficiency + '%</b> \u00b7 Specialization: <b>' + info.specShare + '%</b></div>' +
         '</div></div>' +
         '<div class="bp-section">Synergies</div>' + synList +
+        (sigList ? '<div class="bp-section">Signature Abilities</div>' + sigList : "") +
         (evoList ? '<div class="bp-section">Evolutions</div>' + evoList : "") +
         '<button class="big-btn primary" id="bp-close">CLOSE</button>' +
         '</div>';
@@ -889,22 +936,46 @@
       const root = $("modal-root");
       const box = document.createElement("div");
       box.className = "modal";
+      const actions = SL.Sig && SL.Sig.KEYS ? SL.Sig.KEYS : {
+        ability1: { name: "100 Slashes" }, ability2: { name: "Shadow Break" },
+        ability3: { name: "Fracture Strike" }, special: { name: "Class Ability" },
+        ultimate: { name: "Class Ultimate" }, attack: { name: "Light Attack" },
+        heavy: { name: "Heavy Attack" }, dash: { name: "Dash" }, jump: { name: "Jump" },
+      };
+      const rows = Object.keys(actions).map((a) => {
+        const label = this._keyLabel(a);
+        return `<span class="kg-k">${actions[a].name}</span>
+          <span class="kg-v"><code class="kg-code" id="kg-${a}">${label}</code>
+          <button class="big-btn tiny kg-rebind" data-action="${a}">REBIND</button></span>`;
+      }).join("");
       box.innerHTML = `<div class="modal-box">
         <h2 style="color:#57c8ff">CONTROLS</h2>
-        <div class="keys-grid">
-          <span class="kg-k">WASD / Arrows</span><span>Move</span>
-          <span class="kg-k">Space / Tap</span><span>Jump</span>
-          <span class="kg-k">Mouse Click / Attack</span><span>Light Attack</span>
-          <span class="kg-k">Right Click / Heavy</span><span>Heavy Attack</span>
-          <span class="kg-k">Shift / Dash</span><span>Dash</span>
-          <span class="kg-k">E / Special</span><span>Ability</span>
-          <span class="kg-k">Q / Ultimate</span><span>Ultimate</span>
-          <span class="kg-k">P / Esc</span><span>Pause</span>
-        </div>
-        <p style="font-size:12px;color:#93a1c4">On mobile: drag the joystick to move, tap buttons to act. Swipe up to jump, swipe down to dash.</p>
+        <div class="keys-grid">${rows}</div>
+        <p style="font-size:12px;color:#93a1c4">Click REBIND then press a key. Movement stays on WASD / Arrows. On mobile: joystick to move, buttons to act, swipe up to jump, swipe down to dash.</p>
         <button class="big-btn primary" id="modal-close">CLOSE</button>
       </div>`;
       root.appendChild(box);
+      const g = SL.Game;
+      box.querySelectorAll(".kg-rebind").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const action = btn.dataset.action;
+          btn.textContent = "PRESS KEY...";
+          btn.classList.add("capturing");
+          const handler = (ev) => {
+            ev.preventDefault();
+            window.removeEventListener("keydown", handler);
+            const code = ev.code || "KeyX";
+            if (g && g.input) g.input.rebind(action, code);
+            const id = "kg-" + action;
+            const el = document.getElementById(id);
+            if (el) el.textContent = this._keyLabel(action);
+            btn.textContent = "REBIND";
+            btn.classList.remove("capturing");
+          };
+          window.addEventListener("keydown", handler);
+        });
+      });
       $("modal-close").addEventListener("click", () => box.remove());
     },
   };

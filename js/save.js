@@ -31,7 +31,7 @@
       settings: {
         sfxVol: 0.85, musicVol: 0.4, musicOn: true, soundOn: true,
         screenShake: true, damageNumbers: true, reduceEffects: false, quality: "auto",
-        autoAttack: true,
+        autoAttack: true, keymap: null,
       },
       achievements: {},       // id -> unlockedAt
       challengeProgress: {},  // challenge id -> {value, claimed}
