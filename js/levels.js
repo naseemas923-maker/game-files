@@ -14,28 +14,28 @@
       id: "forest", name: "The Whispering Forest", bossId: "gorGul",
       sky: ["#0e2a3a", "#15363f"], sun: { x: 0.78, y: 0.18, color: "#ffd9a0", r: 46 },
       far: "#0d2230", mid: "#14403a", groundTop: "#1c4a2e", groundBot: "#0d2017", line: "#2f7a45",
-      farType: "forest", ambient: "leaves", hazard: ["spikes", "rootspike"],
+      farType: "forest", ambient: "leaves", hazard: ["rootspike"],
       deco: ["tree", "bush", "rock"],
     },
     {
       id: "village", name: "The Shadow Village", bossId: "wraithKing",
       sky: ["#180f2e", "#241136"], sun: { x: 0.22, y: 0.2, color: "#c9a0ff", r: 34 },
       far: "#150c28", mid: "#1f1240", groundTop: "#241540", groundBot: "#0e0818", line: "#4a2f7a",
-      farType: "village", ambient: "bats", hazard: ["spikes", "grave"],
+      farType: "village", ambient: "bats", hazard: ["grave"],
       deco: ["house", "tomb", "deadTree"],
     },
     {
       id: "desert", name: "The Endless Desert", bossId: "magmaTyrant",
       sky: ["#3a2410", "#5c3a18"], sun: { x: 0.5, y: 0.14, color: "#ffb84d", r: 60 },
       far: "#331f0e", mid: "#4a2e14", groundTop: "#7a5a24", groundBot: "#3a2410", line: "#a07a34",
-      farType: "desert", ambient: "sand", hazard: ["cactus", "spikes"],
+      farType: "desert", ambient: "sand", hazard: ["cactus"],
       deco: ["cactus", "dune", "rock"],
     },
     {
       id: "frozen", name: "The Frozen Kingdom", bossId: "frostColossus",
       sky: ["#0a2030", "#123a4e"], sun: { x: 0.78, y: 0.22, color: "#c9f0ff", r: 40 },
       far: "#0a1c2a", mid: "#123a4a", groundTop: "#d8eef5", groundBot: "#1a4a5e", line: "#8fd0e8",
-      farType: "frozen", ambient: "snow", hazard: ["spikes", "icecrystal"],
+      farType: "frozen", ambient: "snow", hazard: ["icecrystal"],
       deco: ["iceTree", "iceRock"],
     },
     {
@@ -49,7 +49,7 @@
       id: "castle", name: "The Dark Castle", bossId: "wraithKing",
       sky: ["#0e0e1c", "#1a142e"], sun: { x: 0.85, y: 0.16, color: "#a09aff", r: 30 },
       far: "#0c0c18", mid: "#18122c", groundTop: "#241c38", groundBot: "#0a0812", line: "#3a2f5e",
-      farType: "castle", ambient: "bats", hazard: ["spikes", "spikewall"],
+      farType: "castle", ambient: "bats", hazard: ["spikewall"],
       deco: ["castleWall", "torch", "bone"],
     },
   ];
@@ -128,10 +128,6 @@
       const g = this.game;
       const gy = g.groundY;
       switch (type) {
-        case "spikes": {
-          const n = 2 + Math.floor(rng() * 3);
-          return { type, x, y: gy, w: n * 12, h: 14, n, hazard: true, dmg: 12, zone: zone.id };
-        }
         case "rootspike": {
           return { type, x, y: gy, w: 26, h: 18, hazard: true, dmg: 10, zone: zone.id };
         }
@@ -481,18 +477,6 @@
         }
 
         /* -------- hazards -------- */
-        case "spikes": {
-          ctx.fillStyle = "#b8c4d8";
-          for (let i = 0; i < d.n; i++) {
-            ctx.beginPath();
-            ctx.moveTo(d.x + i * 12, gy);
-            ctx.lineTo(d.x + i * 12 + 6, gy - d.h);
-            ctx.lineTo(d.x + i * 12 + 12, gy);
-            ctx.closePath();
-            ctx.fill();
-          }
-          break;
-        }
         case "rootspike": {
           ctx.fillStyle = "#4a8a5e";
           ctx.beginPath();

@@ -1328,7 +1328,7 @@
           }
           continue;
         }
-        if (hz.type === "spikewall" || hz.type === "spikes" || hz.type === "cactus" || hz.type === "icecrystal" || hz.type === "rootspike") {
+        if (hz.type === "spikewall" || hz.type === "cactus" || hz.type === "icecrystal" || hz.type === "rootspike") {
           if (U.rectsOverlap({ x: hz.x, y: hz.y - hz.h, w: hz.w, h: hz.h }, { x: p.x - 10, y: p.y - 52, w: 20, h: 52 })) {
             p.takeDamage(hz.dmg, { source: null });
             p.iFrames = 0.5;
@@ -1538,7 +1538,7 @@
       const gy = this.groundY;
       for (const hz of hzs) {
         switch (hz.type) {
-          case "spikes": case "spikewall": case "cactus": case "icecrystal": case "rootspike": {
+          case "spikewall": case "cactus": case "icecrystal": case "rootspike": {
             const n = hz.n || 2;
             const color = hz.type === "cactus" ? "#4a8a3a" : hz.type === "icecrystal" ? "#bfe9f5" : hz.type === "rootspike" ? "#5a4a3a" : "#9aa2b0";
             ctx.fillStyle = color;

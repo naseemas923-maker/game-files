@@ -254,15 +254,10 @@
       seg.platforms.push(p);
       return p;
     }
-    _spike(seg, zone, x, rng) {
-      const n = 2 + Math.floor(rng() * 3);
-      seg.hazards.push({ type: "spikes", x, y: this.game.groundY, w: n * 12, h: 14, n, hazard: true, dmg: 12, zone: zone.id });
-    }
     _haz(seg, zone, type, x, extra) {
       const g = this.game;
       const gy = g.groundY;
       const base = {
-        spikes: { type, x, y: gy, w: 24, h: 14, hazard: true, dmg: 12, zone: zone.id },
         lava: { type, x, y: gy, w: 70, h: 10, hazard: true, dmg: 18, zone: zone.id, burn: true },
         firejet: { type, x, y: gy, w: 18, h: 0, hazard: true, dmg: 15, zone: zone.id, cycle: Math.random(), phase: Math.random() },
         spikewall: { type, x, y: gy, w: 16, h: 46, hazard: true, dmg: 12, zone: zone.id },
@@ -290,8 +285,6 @@
           else if (zone.farType === "frozen") d.type = "iceTree";
           else d.type = "rock";
           seg.decos.push(d);
-        } else if (roll < 0.75) {
-          this._spike(seg, zone, x, rng);
         } else {
           seg.decos.push({ type: "rock", x, y: gy, w: 22, h: 14, s: 1, v: rng(), zone: zone.id });
         }
@@ -311,7 +304,7 @@
       const n = 2 + Math.floor(rng() * 3);
       for (let i = 0; i < n; i++) {
         const x = seg.x0 + 90 + rng() * (SEG_LEN - 180);
-        const t = U.choose(["spikes", "firejet", "spikewall", "spikes"]);
+        const t = U.choose(["firejet", "spikewall"]);
         this._haz(seg, zone, t, x, t === "firejet" ? { phase: rng() } : {});
       }
       // a couple low platforms to hop over hazards
@@ -348,7 +341,9 @@
 
     _genBridge(seg, zone, gy, rng, dist) {
       // hazard below, collapsing/moving spans above
-      this._haz(seg, zone, zone.id === "volcano" ? "lava" : "spikes", seg.x0 + SEG_LEN / 2, zone.id === "volcano" ? { w: SEG_LEN - 60 } : { w: SEG_LEN - 60 });
+      if (zone.id === "volcano") {
+        this._haz(seg, zone, "lava", seg.x0 + SEG_LEN / 2, { w: SEG_LEN - 60 });
+      }
       let x = seg.x0 + 40;
       while (x < seg.x1 - 120) {
         const w = 100 + rng() * 80;
@@ -371,13 +366,8 @@
 
     _genTunnel(seg, zone, gy, rng, dist) {
       seg.feature = { type: "darkness", x: seg.x0, w: SEG_LEN };
-      // low ceiling illusion + floor spikes
+      // low ceiling illusion + platforms to traverse the darkness
       seg.decos.push({ type: "wall", x: seg.x0 + 20, y: gy - 200, w: SEG_LEN - 40, h: 30, zone: zone.id });
-      const n = 3 + Math.floor(rng() * 3);
-      for (let i = 0; i < n; i++) {
-        const x = seg.x0 + 70 + rng() * (SEG_LEN - 140);
-        this._haz(seg, zone, "spikes", x);
-      }
       for (let i = 0; i < 2; i++) {
         const x = seg.x0 + 120 + i * 360 + rng() * 80;
         this._plat(seg, x, gy - 64 - rng() * 26, 90 + rng() * 50, { kind: "stone" });
@@ -400,7 +390,7 @@
       const n = 2 + Math.floor(rng() * 2);
       for (let i = 0; i < n; i++) {
         const x = seg.x0 + 100 + rng() * (SEG_LEN - 200);
-        this._haz(seg, zone, U.choose(["spikes", "firejet"]), x, { phase: rng() });
+        this._haz(seg, zone, "firejet", x, { phase: rng() });
       }
       for (let i = 0; i < 2; i++) {
         const x = seg.x0 + 140 + i * 330 + rng() * 90;
@@ -416,7 +406,6 @@
       this._plat(seg, seg.x0 + 120, gy - 60, 200, { kind: "stone" });
       this._plat(seg, seg.x0 + 420, gy - 112, 200, { kind: "stone", move: { axis: "x", amp: 40, speed: 0.9, phase: 0 } });
       this._plat(seg, seg.x0 + 700, gy - 64, 190, { kind: "stone" });
-      this._haz(seg, zone, "spikes", seg.x0 + SEG_LEN - 120);
       seg.encounter = { template: "eliteGuard", types: ["grunt", "shield", "mage"], count: 3, elite: true };
       if (dist > 900) {
         seg.encounter.types.push("archer");
@@ -447,7 +436,7 @@
       const n = 4 + Math.floor(rng() * 3);
       for (let i = 0; i < n; i++) {
         const x = seg.x0 + 60 + i * ((SEG_LEN - 120) / (n + 1));
-        this._haz(seg, zone, U.choose(["firejet", "spikes", "spikewall", "lava"]), x, { phase: rng() });
+        this._haz(seg, zone, U.choose(["firejet", "spikewall", "lava"]), x, { phase: rng() });
       }
       // narrow stepping stones
       let x = seg.x0 + 90;
@@ -470,7 +459,6 @@
     _genElite(seg, zone, gy, rng, dist) {
       seg.rewards = { coins: 5 + Math.floor(rng() * 4), gems: 2 + Math.floor(rng() * 2), xp: 12 + Math.floor(rng() * 6) };
       this._plat(seg, seg.x0 + SEG_LEN / 2 - 100, gy - 60, 200, { kind: "stone" });
-      this._haz(seg, zone, "spikes", seg.x0 + SEG_LEN - 100);
       seg.encounter = { template: "eliteGuard", types: ["grunt", "mage", "shield"], count: 3, elite: true };
       if (rng() < 0.5) seg.encounter.types.push("assassin");
     }
