@@ -60,6 +60,7 @@
       p.rot = opts.rot || 0;
       p.vrot = opts.vrot || 0;
       p.fade = opts.fade !== undefined ? opts.fade : 1;
+      p.pts = opts.pts || null;
       return p;
     }
 
@@ -113,6 +114,21 @@
         vx: (Math.random() - 0.5) * 20, vy: (Math.random() - 0.5) * 20,
         color, type: "glow", drag: 0.92,
       });
+    }
+
+    /* directional motion streak (speed-lines for dashes / slashes) */
+    streak(x, y, vx, vy, color, size) {
+      this.spawn({ x, y, life: 0.18, size: size || 5, vx: vx || 0, vy: vy || 0, color, type: "streak", drag: 1 });
+    }
+
+    /* radial starburst (big impacts) */
+    star(x, y, color, size, rot) {
+      this.spawn({ x, y, life: 0.3, size: size || 40, rot: rot || 0, color, type: "star", drag: 1 });
+    }
+
+    /* lingering "X" cross mark (shadow break finish) */
+    cross(x, y, color, size, rot, life) {
+      this.spawn({ x, y, life: life || 0.4, size: size || 30, rot: rot || Math.PI / 4, color, type: "cross", drag: 1 });
     }
 
     lightning(x1, y1, x2, y2, color, segments) {
@@ -230,6 +246,7 @@
             break;
           }
           case "bolt": {
+            if (!p.pts) break;
             ctx.globalAlpha = alpha;
             ctx.strokeStyle = p.color;
             ctx.lineWidth = 2.5;
@@ -241,6 +258,52 @@
             ctx.globalAlpha = alpha * 0.5;
             ctx.lineWidth = 7;
             ctx.stroke();
+            break;
+          }
+          case "streak": {
+            ctx.globalAlpha = alpha * 0.85;
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = Math.max(1, p.size * 0.3);
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x - p.vx * 0.055, p.y - p.vy * 0.055);
+            ctx.stroke();
+            break;
+          }
+          case "star": {
+            const r = p.size;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = Math.max(1, r * 0.16);
+            ctx.beginPath();
+            for (let i = 0; i < 8; i++) {
+              const a = (i / 8) * U.TAU;
+              ctx.moveTo(Math.cos(a) * r * 0.3, Math.sin(a) * r * 0.3);
+              ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+            }
+            ctx.stroke();
+            ctx.globalAlpha = alpha * 0.25;
+            ctx.fillStyle = p.color;
+            ctx.beginPath(); ctx.arc(0, 0, r * 0.35, 0, U.TAU); ctx.fill();
+            ctx.restore();
+            break;
+          }
+          case "cross": {
+            ctx.globalAlpha = alpha * 0.9;
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = Math.max(2, p.size * 0.14);
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            const cr = p.size;
+            ctx.beginPath();
+            ctx.moveTo(-cr, -cr); ctx.lineTo(cr, cr);
+            ctx.moveTo(cr, -cr); ctx.lineTo(-cr, cr);
+            ctx.stroke();
+            ctx.restore();
             break;
           }
           case "bat": {

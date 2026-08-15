@@ -1037,10 +1037,15 @@
         s.targets = this._sigTargets(cfg.dashRange, 9);
         SL.UI.banner("100 SLASHES", "synergy");
       }
-      // wind-up stance (no movement, hold)
+      // wind-up stance (no movement, energy converges on the blade)
       if (s.t < cfg.dashStart) {
+        const k = U.clamp(s.t / cfg.dashStart, 0, 1);
+        g.particles.ring(this.x, this.y - 40, cfg.color, 6 + k * 46, 0.22);
+        if (Math.random() < 0.5) {
+          g.particles.trail(this.x + (Math.random() - 0.5) * 30, this.y - 34 + (Math.random() - 0.5) * 26, cfg.color, 3);
+        }
         if (Math.random() < 0.3) {
-          g.particles.trail(this.x - this.facing * 8, this.y - 34, cfg.color, 3);
+          g.particles.burst(this.x + this.facing * 20, this.y - 40, "#eaf9ff", 2, 130, 2, 0.25, 0);
         }
         return;
       }
@@ -1061,7 +1066,12 @@
           this.x = tx;
           this.y = ty;
           this.facing = target ? (target.x > this.x ? 1 : -1) : this.facing;
+          // motion streak behind the dash + landing dust
+          g.particles.streak(this.x - this.facing * 12, this.y - 34, -this.facing * 760, 0, cfg.color, 5);
+          g.particles.burst(this.x, this.y - 4, "#b9c2d0", 3, 170, 2.5, 0.3, 420);
+          // crossing double-slash flash
           g.particles.slash(this.x + this.facing * 24, this.y - 34, this.facing > 0 ? 0 : Math.PI, cfg.color, 1.5);
+          g.particles.slash(this.x + this.facing * 24, this.y - 34, this.facing > 0 ? 0.5 : Math.PI - 0.5, "#ffffff", 1.05);
           g.particles.burst(this.x + this.facing * 10, this.y - 42, cfg.color, cfg.perSlashParticles, 240, 2.6, 0.3, 0);
           // grouped damage — all enemies near the strike point, once per step
           const dmg = g._meleeDmg(cfg.perSlashDmg * s.abilityMul);
@@ -1076,6 +1086,7 @@
               knock: { x: (e.x > this.x ? 1 : -1) * cfg.perSlashKnock, y: -40 },
             });
             g.puff(e.x, e.y - 30, cfg.color, 3);
+            g.particles.ring(e.x, e.y - 30, "#ffffff", 5, 0.18);
           }
           // boss takes a cut of every step
           if (g.boss && !g.boss.dead) {
@@ -1084,6 +1095,7 @@
               s.struck.add("boss:" + step);
               g.dealDamage(g.boss, dmg, { fromPlayer: true, effects: true });
               g.puff(g.boss.x, g.boss.y - 70, cfg.color, 4);
+              g.particles.ring(g.boss.x, g.boss.y - 70, "#ffffff", 7, 0.2);
             }
           }
           g.audio.play("slash");
@@ -1099,9 +1111,19 @@
         g.camPunch(cfg.zoom, 0.45);
         g.setSlowmo(0.1, 0.55);
         g.audio.play("explosion");
-        g.particles.slash(this.x + this.facing * 46, this.y - 34, 0, "#ffffff", 2.8);
-        g.particles.slash(this.x + this.facing * 46, this.y - 34, Math.PI, cfg.color, 2.3);
-        g.particles.shock(this.x, this.y - 34, cfg.color, 64);
+        const fx = this.x + this.facing * 46, fy = this.y - 34;
+        // radial slash fan + white starburst core
+        g.particles.star(fx, fy, "#ffffff", 74, 0);
+        g.particles.star(fx, fy, cfg.color, 46, Math.PI / 8);
+        g.particles.slash(fx, fy, 0, "#ffffff", 2.8);
+        g.particles.slash(fx, fy, Math.PI, cfg.color, 2.3);
+        for (let i = -2; i <= 2; i++) {
+          if (i === 0) continue;
+          g.particles.slash(fx, fy, i * 0.55, cfg.color, 1.25);
+        }
+        g.particles.shock(this.x, this.y - 34, cfg.color, 120);
+        g.particles.shock(this.x, this.y - 34, "#ffffff", 78);
+        g.particles.burst(fx, fy, "#ffffff", 14, 430, 3, 0.5, 140);
         const dmg = g._meleeDmg(cfg.finalDmg * s.abilityMul);
         for (const e of g.enemies) {
           if (e.dead) continue;
@@ -1111,12 +1133,14 @@
             knock: { x: (e.x > this.x ? 1 : -1) * cfg.finalKnock, y: -260 },
           });
           g.puff(e.x, e.y - 40, "#ffffff", 8);
+          g.particles.ring(e.x, e.y - 40, "#ffffff", 9, 0.25);
         }
         if (g.boss && !g.boss.dead) {
           const d = U.dist(this.x, this.y - 34, g.boss.x, g.boss.y - 70);
           if (d < cfg.finalRadius + 60) {
             g.dealDamage(g.boss, dmg, { fromPlayer: true, effects: true });
             g.puff(g.boss.x, g.boss.y - 70, "#ffffff", 10);
+            g.particles.ring(g.boss.x, g.boss.y - 70, "#ffffff", 12, 0.3);
           }
         }
       }
@@ -1135,17 +1159,31 @@
       // silhouette fade + dark shadow particles
       if (s.t < cfg.teleAt) {
         this.sigGhost = Math.min(1, s.t / cfg.teleAt);
+        const k = s.t / cfg.teleAt;
+        // collapsing dark rings + crackling void energy
+        g.particles.ring(this.x, this.y - 36, "#8a5cff", 8 + (1 - k) * 28, 0.2);
         if (Math.random() < 0.5) {
           g.particles.smoke(this.x + (Math.random() - 0.5) * 10, this.y - 30, "#2a1b4a", 2);
+        }
+        if (Math.random() < 0.2) {
+          g.particles.lightning(
+            this.x + (Math.random() - 0.5) * 30, this.y - 62 + (Math.random() - 0.5) * 26,
+            this.x + (Math.random() - 0.5) * 30, this.y - 10 + (Math.random() - 0.5) * 12,
+            "#9d6bff", 5);
         }
         return;
       }
       // teleport: vanish and reappear behind the target
       if (s.t < cfg.appearAt && !s.teleported) {
         s.teleported = true;
+        const ox = this.x, oy = this.y - 34;
         this.sigGhost = 0;
-        g.spawnAfterimages(6);
-        g.particles.burst(this.x, this.y - 34, cfg.color, cfg.teleParticles, 200, 3.2, 0.4, 0);
+        // dark vortex at the vanish point (beforeimages, not after)
+        for (let i = 0; i < 5; i++) {
+          g.afterimages.push({ x: ox - this.facing * i * 9, y: this.y, t: 0.32, facing: this.facing, color: "#1a1030" });
+        }
+        g.particles.burst(ox, oy, "#2a1b4a", cfg.teleParticles, 190, 3.6, 0.4, 0);
+        g.particles.shock(ox, oy, "#7a4aff", 28);
         if (s.target) {
           this.x = s.target.x - s.target.facing * 46;
           this.y = g.groundY;
@@ -1157,6 +1195,9 @@
           this.x = U.clamp(this.x + this.facing * cfg.range * 0.6, g.scrollX + 60, g.scrollX + g.viewW - 40);
           this.facing = this.facing;
         }
+        // shadow-line bolt from vanish to reappear + arrival starburst
+        g.particles.lightning(ox, oy, this.x, this.y - 34, "#8a5cff", 12);
+        g.particles.star(this.x, this.y - 34, "#c86bff", 42, 0);
         g.particles.burst(this.x, this.y - 34, "#2a1b4a", 8, 140, 3, 0.3, 0);
         return;
       }
@@ -1178,6 +1219,10 @@
           });
           g.puff(target.x, target.y - 44, "#c86bff", cfg.crossParticles);
         }
+        // lingering violet X marks + burst
+        g.particles.cross(ex, ey, "#e8c4ff", 46, Math.PI / 4, 0.42);
+        g.particles.cross(ex, ey, cfg.color, 30, Math.PI / 4, 0.3);
+        g.particles.star(ex, ey, "#c86bff", 30, Math.PI / 4);
         g.particles.slash(ex, ey, 0, "#c86bff", 2.4);
         g.particles.slash(ex, ey, Math.PI / 2, "#e8c4ff", 1.9);
         g.particles.burst(ex, ey, "#e8c4ff", 10, 260, 3, 0.4, 0);
@@ -1211,6 +1256,11 @@
           x: this.x + (Math.random() - 0.5) * 20, y: this.y - 30 + (Math.random() - 0.5) * 20,
           life: 0.28, size: 3 + k * 14, color: cfg.color, type: "glow", grow: 40, drag: 0.92,
         });
+        // expanding golden rings + rising sparks while charging
+        g.particles.ring(this.x, this.y - 12, cfg.color, 6 + k * 36, 0.22);
+        if (Math.random() < 0.4) {
+          g.particles.burst(this.x + (Math.random() - 0.5) * 44, this.y - 6, "#d9b84a", 2, 70, 2.2, 0.3, -70);
+        }
         if (k > 0.45 && !s.crackSpawned) {
           s.crackSpawned = true;
           g.groundCrack(this.x, this.y, cfg.color, 26, 1.0);
@@ -1229,8 +1279,18 @@
         g.camPunch(cfg.zoom, 0.5);
         g.audio.play("explosion");
         g.groundCrack(this.x, this.y, cfg.color, cfg.radius, cfg.crackDur);
-        g.particles.shock(this.x, this.y, cfg.color, cfg.radius);
+        // starburst core + double shockwave + debris + dust + energy beam
+        g.particles.star(this.x, this.y, cfg.color, 92, 0);
+        g.particles.star(this.x, this.y, "#fff3c0", 52, Math.PI / 8);
+        g.particles.shock(this.x, this.y, cfg.color, cfg.radius * 1.35);
+        g.particles.shock(this.x, this.y, "#ffffff", cfg.radius * 0.7);
         g.particles.burst(this.x, this.y - 10, cfg.color, cfg.crackParticles, 400, 4, 0.6, 420);
+        g.particles.burst(this.x, this.y - 8, "#8a7a5e", 12, 340, 4, 0.7, 650);
+        g.particles.burst(this.x, this.y - 8, "#5a4a3a", 10, 260, 5, 0.8, 550);
+        g.particles.smoke(this.x - 22, this.y - 6, "#cbbfa0", 4);
+        g.particles.smoke(this.x + 22, this.y - 6, "#cbbfa0", 4);
+        g.particles.lightning(this.x, this.y - 72, this.x, this.y, "#ffd75e", 5);
+        g.particles.lightning(this.x + 16, this.y - 48, this.x - 10, this.y, "#fff3c0", 4);
         g.spawnAfterimages(3);
         const dmg = g._meleeDmg(cfg.dmg * s.abilityMul);
         for (const e of g.enemies) {
@@ -1242,6 +1302,7 @@
             knock: { x: (e.x > this.x ? 1 : -1) * cfg.knock, y: -cfg.launch },
           });
           g.puff(e.x, e.y - 30, cfg.color, 6);
+          g.particles.ring(e.x, e.y - 30, "#fff3c0", 6, 0.2);
         }
         if (g.boss && !g.boss.dead) {
           const d = U.dist(this.x, this.y, g.boss.x, g.boss.y - 70);
@@ -1388,6 +1449,22 @@
         alpha: pAlpha,
       });
       ctx.globalAlpha = 1;
+
+      // shadow break charge: glowing crimson eyes on the dark silhouette
+      if (this.sig && this.sig.id === "shadowBreak" && this.sig.t < this.sig.cfg.teleAt) {
+        const gx = this.x + this.facing * 2.6;
+        const gy = this.y - 50;
+        const ea = (1 - this.sigGhost) * 0.95;
+        ctx.globalAlpha = ea * 0.5;
+        ctx.fillStyle = "#ff4d6a";
+        ctx.beginPath(); ctx.arc(gx - 2.6, gy, 3.6, 0, U.TAU); ctx.fill();
+        ctx.beginPath(); ctx.arc(gx + 2.6, gy, 3.6, 0, U.TAU); ctx.fill();
+        ctx.globalAlpha = ea;
+        ctx.fillStyle = "#ffd7e0";
+        ctx.beginPath(); ctx.arc(gx - 2.6, gy, 1.7, 0, U.TAU); ctx.fill();
+        ctx.beginPath(); ctx.arc(gx + 2.6, gy, 1.7, 0, U.TAU); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
 
       // hp bar above player (small)
       if (this.hp < this.maxHp) {
